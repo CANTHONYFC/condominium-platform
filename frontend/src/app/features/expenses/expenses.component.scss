@@ -1,0 +1,13 @@
+@use '../feature-shared' as *;
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  margin-right: 4px;
+
+  &--gray { background: #f1f5f9; color: #475569; }
+  &--purple { background: #f3e8ff; color: #7e22ce; }
+}

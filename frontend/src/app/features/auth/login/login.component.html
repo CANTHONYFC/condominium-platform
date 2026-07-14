@@ -1,0 +1,127 @@
+<div class="login-page">
+  <!-- Panel izquierdo: branding -->
+  <aside class="login-hero">
+    <div class="login-hero__pattern"></div>
+    <div class="login-hero__content">
+      <img src="/assets/logo.jpeg" alt="Condominium.co" class="login-hero__logo" />
+      <div class="login-hero__badge">
+        <mat-icon fontSet="material-icons-round">apartment</mat-icon>
+        SaaS Multi-tenant
+      </div>
+      <h1 class="login-hero__title">Gestiona tus condominios en un solo lugar</h1>
+      <p class="login-hero__text">
+        Unidades, propietarios, finanzas, morosidad y reportes, en tiempo real y en un solo lugar.
+      </p>
+      <ul class="login-hero__features">
+        <li class="login-hero__feature">
+          <mat-icon fontSet="material-icons-round">check_circle</mat-icon>
+          Multi-empresa con datos aislados
+        </li>
+        <li class="login-hero__feature">
+          <mat-icon fontSet="material-icons-round">check_circle</mat-icon>
+          Estructura: torres, pisos y unidades
+        </li>
+        <li class="login-hero__feature">
+          <mat-icon fontSet="material-icons-round">check_circle</mat-icon>
+          Cuotas, pagos ,reservas y estado de cuenta
+        </li>
+      </ul>
+    </div>
+  </aside>
+
+  <!-- Panel derecho: formulario -->
+  <section class="login-panel">
+    <div class="login-form-wrap">
+      <div class="login-form__brand">
+        <img src="/assets/logo.jpeg" alt="Condominium.co" class="login-form__logo" />
+        <div>
+          <div class="login-form__brand-name">Condominium Platform</div>
+          <div class="login-form__brand-tag">Administración inteligente</div>
+        </div>
+      </div>
+
+      <header class="login-form__header">
+        <h2 class="login-form__title">Bienvenido</h2>
+        <p class="login-form__subtitle">Ingresa a tu cuenta para continuar</p>
+      </header>
+
+      <form [formGroup]="form" (ngSubmit)="submit()" class="login-form">
+        @if (showTenantPicker()) {
+          <div class="login-form__tenant-step">
+            <p class="login-form__tenant-hint">
+              Tu cuenta está en varias empresas. Elige con cuál deseas ingresar:
+            </p>
+            <mat-form-field appearance="outline" class="login-form__field">
+              <mat-label>Empresa</mat-label>
+              <mat-icon matPrefix fontSet="material-icons-round">business</mat-icon>
+              <mat-select formControlName="tenantId" placeholder="Selecciona una empresa">
+                @for (t of tenantOptions(); track t.tenantId) {
+                  <mat-option [value]="t.tenantId">
+                    {{ t.tenantName }}
+                    <span class="login-form__tenant-type">({{ organizationLabel(t.organizationType) }})</span>
+                  </mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+          </div>
+        }
+
+        <mat-form-field appearance="outline" class="login-form__field">
+          <mat-label>Correo electrónico</mat-label>
+          <mat-icon matPrefix fontSet="material-icons-round">mail</mat-icon>
+          <input matInput type="email" formControlName="email" placeholder="admin&#64;demo.com" autocomplete="email" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="login-form__field">
+          <mat-label>Contraseña</mat-label>
+          <mat-icon matPrefix fontSet="material-icons-round">lock</mat-icon>
+          <input
+            matInput
+            [type]="hidePassword() ? 'password' : 'text'"
+            formControlName="password"
+            autocomplete="current-password"
+          />
+          <button
+            mat-icon-button
+            matSuffix
+            type="button"
+            (click)="togglePassword()"
+            [attr.aria-label]="hidePassword() ? 'Mostrar contraseña' : 'Ocultar contraseña'"
+          >
+            <mat-icon fontSet="material-icons-round">
+              {{ hidePassword() ? 'visibility_off' : 'visibility' }}
+            </mat-icon>
+          </button>
+        </mat-form-field>
+
+        @if (error()) {
+          <div class="login-form__error" role="alert">
+            <mat-icon fontSet="material-icons-round">error_outline</mat-icon>
+            {{ error() }}
+          </div>
+        }
+
+        <button
+          mat-flat-button
+          color="primary"
+          type="submit"
+          class="login-form__submit"
+          [disabled]="form.invalid || loading()"
+        >
+          @if (loading()) {
+            <mat-spinner diameter="20" class="login-form__spinner"></mat-spinner>
+            Ingresando...
+          } @else {
+            Ingresar
+          }
+        </button>
+      </form>
+
+      <footer class="login-form__footer">
+        <p class="login-form__hint">
+          Demo: <code>admin&#64;demo.com</code> · <code>Admin123!</code>
+        </p>
+      </footer>
+    </div>
+  </section>
+</div>

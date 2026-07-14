@@ -1,0 +1,300 @@
+@use '../feature-shared' as *;
+
+.unit-select {
+  min-width: 320px;
+}
+
+.search-field {
+  min-width: 320px;
+  flex: 1;
+  max-width: 420px;
+}
+
+.statement-table {
+  .paid-months {
+    display: inline-block;
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+    color: #334155;
+  }
+
+  .debt-hint {
+    margin-top: 4px;
+    font-size: 11px;
+    color: #b91c1c;
+    line-height: 1.35;
+  }
+
+  .actions-cell {
+    white-space: nowrap;
+
+    button {
+      margin: 0 4px 4px 0;
+    }
+  }
+}
+
+.statement-download-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.statement-detail-card {
+  margin-top: 16px;
+}
+
+.statement-detail-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.statement-owner-meta {
+  margin: 0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.detail-section-title {
+  margin: 16px 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f172a;
+
+  &--debt {
+    color: #b91c1c;
+  }
+}
+
+.detail-tags {
+  margin: 0;
+  font-size: 13px;
+  color: #334155;
+}
+
+.debt-list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+  color: #7f1d1d;
+
+  li { margin-bottom: 4px; }
+}
+
+.hint {
+  font-size: 13px;
+  color: #64748b;
+  margin-top: 8px;
+}
+
+.cron-hint {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0 0 12px;
+}
+
+.morosity-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 8px;
+
+  &__stat {
+    min-width: 160px;
+    padding: 12px 16px;
+    border-radius: 10px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+
+    .label {
+      display: block;
+      font-size: 12px;
+      color: #64748b;
+      margin-bottom: 4px;
+    }
+
+    strong {
+      font-size: 20px;
+      color: #0f172a;
+    }
+
+    &--debt {
+      background: #fef2f2;
+      border-color: #fecaca;
+
+      strong {
+        color: #b91c1c;
+      }
+    }
+  }
+}
+
+.morosity-table {
+  .period-code {
+    display: block;
+    font-size: 11px;
+    color: #64748b;
+  }
+
+  .debt-amount {
+    color: #b91c1c;
+  }
+}
+
+.period-field {
+  width: 180px;
+}
+
+.grid-hint {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0 0 12px;
+
+  &--link {
+    margin: 12px 0 0;
+    padding: 10px 14px;
+    background: #eff6ff;
+    border-radius: 8px;
+    color: #1e40af;
+  }
+}
+
+.billing-grid-card {
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+.billing-grid-scroll {
+  overflow: auto;
+  max-height: calc(100vh - 280px);
+}
+
+.billing-grid {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  min-width: 1100px;
+
+  th, td {
+    border: 1px solid #e2e8f0;
+    padding: 8px 10px;
+    white-space: nowrap;
+  }
+
+  thead th {
+    background: #dbeafe;
+    color: #1e3a8a;
+    font-weight: 600;
+    text-align: center;
+    vertical-align: bottom;
+  }
+
+  &__head-pools th {
+    background: #eff6ff;
+    font-weight: 500;
+    font-size: 11px;
+  }
+
+  tfoot td {
+    background: #f8fafc;
+    text-align: right;
+  }
+
+  tbody td {
+    text-align: right;
+  }
+
+  .sticky-col {
+    position: sticky;
+    z-index: 2;
+    background: #fff;
+    text-align: left !important;
+
+    &--1 { left: 0; min-width: 64px; }
+    &--2 { left: 64px; min-width: 180px; max-width: 220px; }
+    &--pool, &--foot { background: #eff6ff; z-index: 3; }
+  }
+
+  thead .sticky-col {
+    background: #dbeafe;
+    z-index: 4;
+  }
+
+  .col-fixed {
+    background: #f8fafc;
+  }
+
+  .col-variable {
+    background: #fff;
+  }
+
+  .col-total {
+    background: #fef9c3 !important;
+    color: #854d0e;
+    font-weight: 700;
+    min-width: 100px;
+  }
+
+  .col-tag {
+    display: block;
+    font-size: 9px;
+    font-weight: 500;
+    opacity: 0.7;
+    text-transform: uppercase;
+  }
+
+  .concept-name {
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .concept-type-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    margin-top: 2px;
+    font-size: 10px;
+    font-weight: 500;
+    color: #475569;
+    cursor: pointer;
+
+    span {
+      user-select: none;
+    }
+
+    ::ng-deep .mdc-checkbox {
+      transform: scale(0.85);
+    }
+  }
+
+  .pool-input, .cell-input {
+    width: 88px;
+    padding: 4px 6px;
+    border: 1px solid #93c5fd;
+    border-radius: 6px;
+    font-size: 12px;
+    text-align: right;
+    background: #fff;
+  }
+
+  .pool-label {
+    font-size: 10px;
+    color: #64748b;
+  }
+}
+
+.concept-list {
+  margin: 0;
+  padding-left: 16px;
+  font-size: 12px;
+  color: #334155;
+
+  li { margin-bottom: 2px; }
+}

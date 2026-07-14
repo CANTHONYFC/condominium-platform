@@ -1,0 +1,67 @@
+<div class="page-header">
+  <div>
+    <app-page-heading emphasis="Gastos" subtitle="Registro de egresos del condominio" />
+  </div>
+  <div class="flex gap-2 flex-wrap items-center">
+    <mat-form-field appearance="outline" class="condo-select">
+      <mat-label>Condominio</mat-label>
+      <mat-select [(ngModel)]="selectedCondoId" (selectionChange)="load()">
+        @for (c of condominiums(); track c.id) {
+          <mat-option [value]="c.id">{{ c.code }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    <button mat-flat-button color="primary" (click)="openForm()">
+      <mat-icon fontSet="material-icons-round">add</mat-icon> Nuevo gasto
+    </button>
+  </div>
+</div>
+
+@if (loading()) {
+  <div class="loading-center"><mat-spinner diameter="40"></mat-spinner></div>
+} @else {
+  <div class="summary-grid mb-4">
+    <mat-card class="content-card p-4"><span class="label">Registros</span><strong>{{ summary().total }}</strong></mat-card>
+    <mat-card class="content-card p-4"><span class="label">Total gastado</span><strong>S/ {{ summary().totalAmount | number:'1.2-2' }}</strong></mat-card>
+  </div>
+  <mat-card class="content-card">
+    <table mat-table [dataSource]="items()" class="w-full data-table">
+      <ng-container matColumnDef="date"><th mat-header-cell *matHeaderCellDef>Fecha</th><td mat-cell *matCellDef="let e">{{ e.transactionDate | date:'shortDate' }}</td></ng-container>
+      <ng-container matColumnDef="category"><th mat-header-cell *matHeaderCellDef>Categoría</th>
+        <td mat-cell *matCellDef="let e">
+          <span class="badge badge--gray">{{ categoryLabel(e.category) }}</span>
+          @if (isFromMaintenance(e)) {
+            <span class="badge badge--purple">Mantenimiento</span>
+          }
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="vendor"><th mat-header-cell *matHeaderCellDef>Proveedor</th><td mat-cell *matCellDef="let e">{{ e.vendor || '—' }}</td></ng-container>
+      <ng-container matColumnDef="amount"><th mat-header-cell *matHeaderCellDef>Monto</th><td mat-cell *matCellDef="let e">{{ e.amount | currency:'PEN':'S/ ' }}</td></ng-container>
+      <ng-container matColumnDef="file"><th mat-header-cell *matHeaderCellDef>Adjunto</th>
+        <td mat-cell *matCellDef="let e">
+          @if (e.attachmentUrl) {
+            <div class="table-actions">
+              <a mat-icon-button class="table-actions__primary" [href]="serverUrl + e.attachmentUrl" target="_blank" rel="noopener" title="Ver PDF" aria-label="Ver PDF">
+                <mat-icon fontSet="material-icons-round">picture_as_pdf</mat-icon>
+              </a>
+            </div>
+          } @else { — }
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="actions"><th mat-header-cell *matHeaderCellDef></th>
+        <td mat-cell *matCellDef="let e">
+          <div class="table-actions">
+            <button mat-icon-button type="button" class="table-actions__primary" (click)="openForm(e)" [disabled]="isFromMaintenance(e)" title="Editar gasto" aria-label="Editar gasto">
+              <mat-icon fontSet="material-icons-round">edit</mat-icon>
+            </button>
+            <button mat-icon-button type="button" class="table-actions__warn" (click)="remove(e)" [disabled]="isFromMaintenance(e)" title="Eliminar gasto" aria-label="Eliminar gasto">
+              <mat-icon fontSet="material-icons-round">delete</mat-icon>
+            </button>
+          </div>
+        </td>
+      </ng-container>
+      <tr mat-header-row *matHeaderRowDef="['date','category','vendor','amount','file','actions']"></tr>
+      <tr mat-row *matRowDef="let row; columns: ['date','category','vendor','amount','file','actions']"></tr>
+    </table>
+  </mat-card>
+}

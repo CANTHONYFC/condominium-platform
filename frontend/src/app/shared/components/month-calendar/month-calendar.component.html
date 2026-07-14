@@ -1,0 +1,145 @@
+<div class="month-cal">
+  <div class="month-cal__header">
+    <button mat-icon-button type="button" (click)="prevMonth()" aria-label="Mes anterior">
+      <mat-icon fontSet="material-icons-round">chevron_left</mat-icon>
+    </button>
+    <div class="month-cal__title">
+      <strong>{{ title() }}</strong>
+      <button mat-stroked-button type="button" class="month-cal__today" (click)="goToday()">Hoy</button>
+    </div>
+    <button mat-icon-button type="button" (click)="nextMonth()" aria-label="Mes siguiente">
+      <mat-icon fontSet="material-icons-round">chevron_right</mat-icon>
+    </button>
+  </div>
+
+  <div class="month-cal__weekdays">
+    @for (w of weekdayLabels; track w) {
+      <div class="month-cal__weekday">{{ w }}</div>
+    }
+  </div>
+
+  <div class="month-cal__grid">
+    @for (cell of cells(); track cellTrack(cell)) {
+      <div
+        class="month-cal__cell"
+        [class.month-cal__cell--empty]="!cell.day"
+        [class.month-cal__cell--today]="cell.isToday"
+        (click)="onDayClick(cell.date)"
+      >
+        @if (cell.day) {
+          <span class="month-cal__day-num">{{ cell.day }}</span>
+          <div class="month-cal__events">
+            @for (ev of cell.events.slice(0, 3); track ev.id) {
+              <button
+                type="button"
+                class="month-cal__event"
+                [ngClass]="'month-cal__event--' + (ev.color ?? 'blue')"
+                [class.month-cal__event--active]="activeEvent()?.id === ev.id"
+                (mouseenter)="onEventEnter(ev, $event.currentTarget)"
+                (mouseleave)="onEventLeave()"
+                (click)="onEventClick(ev, $event)"
+              >
+                {{ ev.label }}
+              </button>
+            }
+            @if (cell.events.length > 3) {
+              <span class="month-cal__more">+{{ cell.events.length - 3 }} más</span>
+            }
+          </div>
+        }
+      </div>
+    }
+  </div>
+</div>
+
+@if (activeEvent(); as ev) {
+  <div
+    class="event-popover"
+    [ngClass]="'event-popover--' + (ev.color ?? 'blue')"
+    [style.left.px]="popoverX()"
+    [style.top.px]="popoverY()"
+    (mouseenter)="onPopoverEnter()"
+    (mouseleave)="onPopoverLeave()"
+    role="dialog"
+    aria-live="polite"
+  >
+    @if (ev.detail; as d) {
+      <div class="event-popover__header">
+        <div>
+          <h4 class="event-popover__title">{{ d.title }}</h4>
+          @if (d.subtitle) {
+            <p class="event-popover__subtitle">
+              <mat-icon fontSet="material-icons-round">schedule</mat-icon>
+              {{ d.subtitle }}
+            </p>
+          }
+        </div>
+        @if (d.statusLabel) {
+          <span class="event-popover__status" [class]="statusClass(d.statusLabel)">{{ d.statusLabel }}</span>
+        }
+      </div>
+
+      @if (d.contactName || d.unitCode || d.email || d.phone) {
+        <div class="event-popover__body">
+          <p class="event-popover__section-title">Contacto</p>
+          @if (d.contactName) {
+            <div class="event-popover__row">
+              <mat-icon fontSet="material-icons-round">person</mat-icon>
+              <div>
+                <span class="event-popover__row-label">Reservó</span>
+                <strong>{{ d.contactName }}</strong>
+                @if (d.contactRole) {
+                  <span class="event-popover__role">{{ d.contactRole }}</span>
+                }
+              </div>
+            </div>
+          }
+          @if (d.unitCode) {
+            <div class="event-popover__row">
+              <mat-icon fontSet="material-icons-round">apartment</mat-icon>
+              <div>
+                <span class="event-popover__row-label">Unidad</span>
+                <strong>{{ d.unitCode }}</strong>
+              </div>
+            </div>
+          }
+          @if (d.email) {
+            <a class="event-popover__row event-popover__row--link" [href]="'mailto:' + d.email">
+              <mat-icon fontSet="material-icons-round">mail</mat-icon>
+              <div>
+                <span class="event-popover__row-label">Correo</span>
+                <strong>{{ d.email }}</strong>
+              </div>
+            </a>
+          }
+          @if (d.phone) {
+            <a class="event-popover__row event-popover__row--link" [href]="'tel:' + d.phone">
+              <mat-icon fontSet="material-icons-round">phone</mat-icon>
+              <div>
+                <span class="event-popover__row-label">Teléfono</span>
+                <strong>{{ d.phone }}</strong>
+              </div>
+            </a>
+          }
+        </div>
+      } @else if (d.note) {
+        <div class="event-popover__body event-popover__body--note">
+          <mat-icon fontSet="material-icons-round">info</mat-icon>
+          <p>{{ d.note }}</p>
+        </div>
+      }
+    } @else {
+      <div class="event-popover__header">
+        <div>
+          <h4 class="event-popover__title">{{ ev.label }}</h4>
+          @if (ev.sublabel) {
+            <p class="event-popover__subtitle">
+              <mat-icon fontSet="material-icons-round">schedule</mat-icon>
+              {{ ev.sublabel }}
+            </p>
+          }
+        </div>
+      </div>
+    }
+  </div>
+}

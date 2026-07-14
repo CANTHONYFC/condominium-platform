@@ -1,0 +1,230 @@
+<div class="dashboard-page">
+  <div class="dashboard-header">
+    <div>
+      <app-page-heading emphasis="Dashboard" accent="ejecutivo" />
+      <p class="dashboard-subtitle">
+        Resumen financiero y operativo en tiempo real
+        @if (updatedLabel()) {
+          <span class="dashboard-updated">· Actualizado {{ updatedLabel() }}</span>
+        }
+      </p>
+    </div>
+
+    <div class="dashboard-actions">
+      <mat-form-field appearance="outline" class="condo-select">
+        <mat-label>Condominio</mat-label>
+        <mat-select [(ngModel)]="selectedCondoId" (selectionChange)="load()">
+          @if (!condominiums().length) {
+            <mat-option value="">Todos</mat-option>
+          }
+          @for (c of condominiums(); track c.id) {
+            <mat-option [value]="c.id">{{ c.code }} — {{ c.name }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+      <button mat-stroked-button (click)="load()" [disabled]="loading()">
+        <mat-icon fontSet="material-icons-round">refresh</mat-icon>
+        Actualizar
+      </button>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="dashboard-loading">
+      <mat-spinner diameter="44"></mat-spinner>
+    </div>
+  } @else {
+    @if (overview(); as data) {
+    <section class="hero-kpis">
+      @for (kpi of heroKpis(); track kpi.label) {
+        <mat-card class="hero-kpi hero-kpi--{{ kpi.tone }}">
+          @if (kpi.link) {
+            <a [routerLink]="kpi.link" class="hero-kpi__inner hero-kpi__inner--link">
+              <div class="hero-kpi__icon">
+                <mat-icon fontSet="material-icons-round">{{ kpi.icon }}</mat-icon>
+              </div>
+              <div class="hero-kpi__body">
+                <span class="hero-kpi__label">{{ kpi.label }}</span>
+                <strong class="hero-kpi__value">{{ kpi.value }}</strong>
+                @if (kpi.hint) {
+                  <span class="hero-kpi__hint">{{ kpi.hint }}</span>
+                }
+              </div>
+            </a>
+          } @else {
+            <div class="hero-kpi__inner">
+              <div class="hero-kpi__icon">
+                <mat-icon fontSet="material-icons-round">{{ kpi.icon }}</mat-icon>
+              </div>
+              <div class="hero-kpi__body">
+                <span class="hero-kpi__label">{{ kpi.label }}</span>
+                <strong class="hero-kpi__value">{{ kpi.value }}</strong>
+                @if (kpi.hint) {
+                  <span class="hero-kpi__hint">{{ kpi.hint }}</span>
+                }
+              </div>
+            </div>
+          }
+        </mat-card>
+      }
+    </section>
+
+    <section class="dashboard-grid">
+      <mat-card class="panel panel--wide">
+        <div class="panel__header">
+          <div>
+            <h2>Flujo mensual</h2>
+            <p>Ingresos por pagos vs egresos · últimos 6 meses</p>
+          </div>
+          <div class="chart-legend">
+            <span><i class="dot dot--green"></i> Ingresos</span>
+            <span><i class="dot dot--orange"></i> Egresos</span>
+          </div>
+        </div>
+
+        @if (chartBars().length) {
+          <div class="bar-chart">
+            @for (bar of chartBars(); track bar.label) {
+              <div class="bar-chart__group">
+                <div class="bar-chart__bars">
+                  <div class="bar-chart__bar-wrap" [title]="'Ingresos S/ ' + formatMoney(bar.income)">
+                    <div class="bar-chart__bar bar-chart__bar--income" [style.height.%]="bar.incomePct || 2"></div>
+                  </div>
+                  <div class="bar-chart__bar-wrap" [title]="'Egresos S/ ' + formatMoney(bar.expenses)">
+                    <div class="bar-chart__bar bar-chart__bar--expense" [style.height.%]="bar.expensePct || 2"></div>
+                  </div>
+                </div>
+                <span class="bar-chart__label">{{ bar.label }}</span>
+              </div>
+            }
+          </div>
+        } @else {
+          <p class="panel-empty">Sin movimientos registrados en los últimos meses.</p>
+        }
+      </mat-card>
+
+      <mat-card class="panel">
+        <div class="panel__header">
+          <div>
+            <h2>Estado de cuotas</h2>
+            <p>Distribución por estado de cobranza</p>
+          </div>
+        </div>
+
+        <div class="donut-wrap">
+          <div class="donut" [style.background]="donutGradient()">
+            <div class="donut__hole">
+              <strong>{{ data.collectionRate.toFixed(0) }}%</strong>
+              <span>Cobranza mes</span>
+            </div>
+          </div>
+          <ul class="donut-legend">
+            @for (slice of feeStatusSlices(); track slice.key) {
+              <li>
+                <i class="dot" [style.background]="slice.color"></i>
+                {{ slice.label }}
+                <strong>{{ slice.count }}</strong>
+              </li>
+            }
+          </ul>
+        </div>
+      </mat-card>
+    </section>
+
+    <section class="dashboard-grid dashboard-grid--split">
+      <mat-card class="panel">
+        <div class="panel__header">
+          <div>
+            <h2>Principales deudores</h2>
+            <p>Departamentos con mayor saldo pendiente</p>
+          </div>
+          <a mat-stroked-button routerLink="/finance">Ver morosidad</a>
+        </div>
+
+        @if (data.morosityByUnit.length) {
+          <div class="debt-list">
+            @for (row of data.morosityByUnit; track row.unitCode) {
+              <div class="debt-row">
+                <div class="debt-row__main">
+                  <strong>{{ row.unitCode }}</strong>
+                  <span>{{ row.ownerName }}</span>
+                </div>
+                <div class="debt-row__meta">
+                  <span class="debt-row__amount">S/ {{ formatMoney(row.balance) }}</span>
+                  <span class="debt-row__count">{{ row.pendingCount }} cuota{{ row.pendingCount === 1 ? '' : 's' }}</span>
+                </div>
+              </div>
+            }
+          </div>
+        } @else {
+          <p class="panel-empty">No hay morosidad registrada. ¡Buen trabajo!</p>
+        }
+      </mat-card>
+
+      <mat-card class="panel">
+        <div class="panel__header">
+          <div>
+            <h2>Operaciones</h2>
+            <p>Indicadores del día a día</p>
+          </div>
+        </div>
+
+        <div class="ops-grid">
+          <div class="ops-card">
+            <mat-icon fontSet="material-icons-round">confirmation_number</mat-icon>
+            <strong>{{ data.openTickets }}</strong>
+            <span>Tickets abiertos</span>
+          </div>
+          <div class="ops-card">
+            <mat-icon fontSet="material-icons-round">build</mat-icon>
+            <strong>{{ data.openIncidents }}</strong>
+            <span>Incidencias</span>
+          </div>
+          <div class="ops-card">
+            <mat-icon fontSet="material-icons-round">event</mat-icon>
+            <strong>{{ data.reservations }}</strong>
+            <span>Reservas activas</span>
+          </div>
+          <div class="ops-card">
+            <mat-icon fontSet="material-icons-round">badge</mat-icon>
+            <strong>{{ data.todayVisits }}</strong>
+            <span>Visitas hoy</span>
+          </div>
+          <div class="ops-card">
+            <mat-icon fontSet="material-icons-round">engineering</mat-icon>
+            <strong>{{ data.activeStaff }}</strong>
+            <span>Personal activo</span>
+          </div>
+          <div class="ops-card ops-card--occupancy">
+            <mat-icon fontSet="material-icons-round">home</mat-icon>
+            <strong>{{ data.occupancyRate.toFixed(1) }}%</strong>
+            <span>{{ data.occupiedUnits }}/{{ data.totalUnits }} ocupadas</span>
+            <div class="occupancy-bar">
+              <div class="occupancy-bar__fill" [style.width.%]="data.occupancyRate"></div>
+            </div>
+          </div>
+        </div>
+      </mat-card>
+    </section>
+
+    <section class="mini-kpis">
+      <mat-card class="mini-kpi">
+        <span class="mini-kpi__label">Cuotas pendientes</span>
+        <strong>{{ data.morosity }}</strong>
+      </mat-card>
+      <mat-card class="mini-kpi">
+        <span class="mini-kpi__label">Unidades vacías</span>
+        <strong>{{ data.vacantUnits }}</strong>
+      </mat-card>
+      <mat-card class="mini-kpi">
+        <span class="mini-kpi__label">Ingresos acumulados</span>
+        <strong>S/ {{ formatMoney(data.income) }}</strong>
+      </mat-card>
+      <mat-card class="mini-kpi">
+        <span class="mini-kpi__label">Egresos acumulados</span>
+        <strong>S/ {{ formatMoney(data.expenses) }}</strong>
+      </mat-card>
+    </section>
+    }
+  }
+</div>

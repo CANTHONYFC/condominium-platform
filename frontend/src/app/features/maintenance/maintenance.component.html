@@ -1,0 +1,85 @@
+<div class="page-header">
+  <div>
+    <app-page-heading emphasis="Mantenimiento" subtitle="Calendario mensual y control de costos" />
+  </div>
+  <div class="flex gap-2 flex-wrap items-center">
+    <mat-form-field appearance="outline" class="condo-select">
+      <mat-label>Condominio</mat-label>
+      <mat-select [(ngModel)]="selectedCondoId" (selectionChange)="load()">
+        @for (c of condominiums(); track c.id) {
+          <mat-option [value]="c.id">{{ c.code }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    <button mat-flat-button color="primary" (click)="openForm()">
+      <mat-icon fontSet="material-icons-round">build</mat-icon> Programar
+    </button>
+  </div>
+</div>
+
+@if (loading()) {
+  <div class="loading-center"><mat-spinner diameter="40"></mat-spinner></div>
+} @else {
+  <div class="summary-grid mb-4">
+    <mat-card class="content-card p-4"><span class="label">Tareas del mes</span><strong>{{ summary().total }}</strong></mat-card>
+    <mat-card class="content-card p-4"><span class="label">Completadas</span><strong>{{ summary().completed }}</strong></mat-card>
+    <mat-card class="content-card p-4"><span class="label">Costo total</span><strong>S/ {{ summary().totalCost | number:'1.2-2' }}</strong></mat-card>
+  </div>
+
+  <mat-tab-group>
+    <mat-tab label="Calendario">
+      <div class="calendar-legend">
+        @for (item of calendarLegend(); track item.label) {
+          <span class="legend-item legend-item--{{ item.color }}">{{ item.label }}</span>
+        }
+      </div>
+      <mat-card class="content-card p-2 mt-4">
+        <app-month-calendar
+          [year]="calendarYear"
+          [month]="calendarMonth"
+          [events]="calendarEvents()"
+          (monthChange)="onCalendarMonthChange($event)"
+          (dayClick)="onCalendarDayClick($event)"
+          (eventClick)="onCalendarEventClick($event)"
+        />
+      </mat-card>
+    </mat-tab>
+
+    <mat-tab label="Lista">
+      <mat-card class="content-card mt-4">
+        <table mat-table [dataSource]="items()" class="w-full data-table">
+          <ng-container matColumnDef="title"><th mat-header-cell *matHeaderCellDef>Título</th><td mat-cell *matCellDef="let m"><strong>{{ m.title }}</strong></td></ng-container>
+          <ng-container matColumnDef="area"><th mat-header-cell *matHeaderCellDef>Área común</th><td mat-cell *matCellDef="let m">{{ areaLabel(m) }}</td></ng-container>
+          <ng-container matColumnDef="when"><th mat-header-cell *matHeaderCellDef>Cuándo</th><td mat-cell *matCellDef="let m">{{ m.startAt | date:'medium' }}</td></ng-container>
+          <ng-container matColumnDef="vendor"><th mat-header-cell *matHeaderCellDef>Proveedor</th><td mat-cell *matCellDef="let m">{{ m.vendor || '—' }}</td></ng-container>
+          <ng-container matColumnDef="cost"><th mat-header-cell *matHeaderCellDef>Costo</th><td mat-cell *matCellDef="let m">{{ m.cost ? (m.cost | currency:'PEN':'S/ ') : '—' }}</td></ng-container>
+          <ng-container matColumnDef="status"><th mat-header-cell *matHeaderCellDef>Estado</th><td mat-cell *matCellDef="let m"><span [class]="statusClass(m.status)">{{ m.status }}</span></td></ng-container>
+          <ng-container matColumnDef="file"><th mat-header-cell *matHeaderCellDef>PDF</th>
+            <td mat-cell *matCellDef="let m">
+              @if (m.attachmentUrl) {
+                <a mat-button [href]="serverUrl + m.attachmentUrl" target="_blank">Ver</a>
+              } @else { — }
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="actions"><th mat-header-cell *matHeaderCellDef></th>
+            <td mat-cell *matCellDef="let m">
+              <div class="table-actions">
+                <button mat-icon-button type="button" class="table-actions__primary" (click)="openForm(m)" title="Editar" aria-label="Editar mantenimiento">
+                  <mat-icon fontSet="material-icons-round">edit</mat-icon>
+                </button>
+                <button mat-icon-button type="button" class="table-actions__warn" (click)="remove(m)" title="Eliminar" aria-label="Eliminar mantenimiento">
+                  <mat-icon fontSet="material-icons-round">delete</mat-icon>
+                </button>
+              </div>
+            </td>
+          </ng-container>
+          <tr mat-header-row *matHeaderRowDef="['title','area','when','vendor','cost','status','file','actions']"></tr>
+          <tr mat-row *matRowDef="let row; columns: ['title','area','when','vendor','cost','status','file','actions']"></tr>
+        </table>
+        @if (!items().length) {
+          <p class="empty-inline">No hay mantenimientos en este mes.</p>
+        }
+      </mat-card>
+    </mat-tab>
+  </mat-tab-group>
+}

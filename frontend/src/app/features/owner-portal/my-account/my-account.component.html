@@ -1,0 +1,85 @@
+<div class="page-header">
+  <div>
+    <app-page-heading emphasis="Mi estado" accent="de cuenta" subtitle="Solo tus movimientos, deudas y pagos" />
+  </div>
+</div>
+
+@if (loading()) {
+  <div class="loading-center"><mat-spinner diameter="40"></mat-spinner></div>
+} @else {
+  @if (statement(); as s) {
+  @if (s.summary.balance > 0) {
+    <div class="debt-alert" role="alert">
+      <mat-icon fontSet="material-icons-round">warning_amber</mat-icon>
+      <div>
+        <strong>Tienes deuda pendiente</strong>
+        <p>Saldo por pagar: <strong>S/ {{ s.summary.balance | number:'1.2-2' }}</strong></p>
+      </div>
+    </div>
+  }
+
+  <mat-card class="content-card p-4 statement-card">
+    <div class="statement-header">
+      <div>
+        <h3 class="text-lg font-semibold mb-1">Unidad {{ unitCode() }}</h3>
+        <p class="statement-meta">Resumen de tus cuotas y pagos</p>
+      </div>
+      <div class="statement-actions">
+        <button mat-flat-button color="primary" (click)="downloadPdf('latest')">
+          <mat-icon fontSet="material-icons-round">receipt</mat-icon> PDF último mes
+        </button>
+        <button mat-stroked-button color="primary" (click)="downloadPdf('history')">
+          <mat-icon fontSet="material-icons-round">history</mat-icon> PDF historial
+        </button>
+      </div>
+    </div>
+
+    <div class="summary-grid">
+      <div><span class="label">Total cargado</span><span>S/ {{ s.summary.totalCharged | number:'1.2-2' }}</span></div>
+      <div><span class="label">Total pagado</span><span>S/ {{ s.summary.totalPaid | number:'1.2-2' }}</span></div>
+      <div><span class="label">Saldo pendiente</span><strong class="text-red-600">S/ {{ s.summary.balance | number:'1.2-2' }}</strong></div>
+    </div>
+
+    @if (s.pendingDebts?.length) {
+      <p class="detail-section-title detail-section-title--debt">Deuda pendiente</p>
+      <ul class="debt-list">
+        @for (d of s.pendingDebts; track d.period) {
+          <li>{{ d.label }}: falta pagar <strong>S/ {{ d.balance | number:'1.2-2' }}</strong> de S/ {{ d.amount | number:'1.2-2' }}</li>
+        }
+      </ul>
+    }
+
+    <table mat-table [dataSource]="s.fees" class="w-full data-table mt-4">
+      <ng-container matColumnDef="period">
+        <th mat-header-cell *matHeaderCellDef>Periodo</th>
+        <td mat-cell *matCellDef="let f">{{ f.period }}</td>
+      </ng-container>
+      <ng-container matColumnDef="concepts">
+        <th mat-header-cell *matHeaderCellDef>Detalle</th>
+        <td mat-cell *matCellDef="let f">{{ formatConcepts(f) }}</td>
+      </ng-container>
+      <ng-container matColumnDef="amount">
+        <th mat-header-cell *matHeaderCellDef>Monto</th>
+        <td mat-cell *matCellDef="let f">S/ {{ f.amount | number:'1.2-2' }}</td>
+      </ng-container>
+      <ng-container matColumnDef="paid">
+        <th mat-header-cell *matHeaderCellDef>Pagado</th>
+        <td mat-cell *matCellDef="let f">S/ {{ f.paidAmount | number:'1.2-2' }}</td>
+      </ng-container>
+      <ng-container matColumnDef="balance">
+        <th mat-header-cell *matHeaderCellDef>Saldo</th>
+        <td mat-cell *matCellDef="let f">S/ {{ f.balance | number:'1.2-2' }}</td>
+      </ng-container>
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef>Estado</th>
+        <td mat-cell *matCellDef="let f"><span [class]="statusClass(f.status)">{{ f.status }}</span></td>
+      </ng-container>
+      <tr mat-header-row *matHeaderRowDef="feeCols"></tr>
+      <tr mat-row *matRowDef="let row; columns: feeCols"></tr>
+    </table>
+    @if (!s.fees.length) {
+      <p class="empty-inline">No hay movimientos registrados aún.</p>
+    }
+  </mat-card>
+  }
+}

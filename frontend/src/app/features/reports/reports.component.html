@@ -1,0 +1,112 @@
+<div class="page-header">
+  <div>
+    <app-page-heading emphasis="Reportes" subtitle="Ingresos y egresos del condominio" />
+  </div>
+  <div class="flex gap-2 flex-wrap items-center filters-row">
+    <mat-form-field appearance="outline" class="condo-select">
+      <mat-label>Condominio</mat-label>
+      <mat-select [(ngModel)]="selectedCondoId" (selectionChange)="load()">
+        @for (c of condominiums(); track c.id) {
+          <mat-option [value]="c.id">{{ c.code }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field appearance="outline" class="date-field">
+      <mat-label>Desde</mat-label>
+      <input matInput type="date" [(ngModel)]="filterFrom" (change)="load()" />
+    </mat-form-field>
+    <mat-form-field appearance="outline" class="date-field">
+      <mat-label>Hasta</mat-label>
+      <input matInput type="date" [(ngModel)]="filterTo" (change)="load()" />
+    </mat-form-field>
+    <button mat-stroked-button type="button" (click)="load()">Actualizar</button>
+  </div>
+</div>
+
+@if (loading()) {
+  <div class="loading-center"><mat-spinner diameter="40"></mat-spinner></div>
+} @else {
+  @if (report(); as r) {
+  <div class="summary-grid mb-4">
+    <mat-card class="content-card p-4 summary-card summary-card--income">
+      <span class="label">Ingresos</span>
+      <strong>S/ {{ r.summary.totalIncome | number:'1.2-2' }}</strong>
+      <span class="hint">{{ r.summary.incomeCount }} movimientos</span>
+    </mat-card>
+    <mat-card class="content-card p-4 summary-card summary-card--expense">
+      <span class="label">Egresos</span>
+      <strong>S/ {{ r.summary.totalExpense | number:'1.2-2' }}</strong>
+      <span class="hint">{{ r.summary.expenseCount }} movimientos</span>
+    </mat-card>
+    <mat-card class="content-card p-4 summary-card" [class.summary-card--positive]="r.summary.balance >= 0" [class.summary-card--negative]="r.summary.balance < 0">
+      <span class="label">Balance</span>
+      <strong>S/ {{ r.summary.balance | number:'1.2-2' }}</strong>
+      <span class="hint">Ingresos − egresos</span>
+    </mat-card>
+  </div>
+
+  @if (r.expensesByCategory.length) {
+    <mat-card class="content-card p-4 mb-4">
+      <h3 class="section-title">Egresos por categoría</h3>
+      <div class="category-bars">
+        @for (row of r.expensesByCategory; track row.category) {
+          <div class="category-bar">
+            <div class="category-bar__head">
+              <span>{{ categoryLabel(row.category) }}</span>
+              <strong>S/ {{ row.amount | number:'1.2-2' }}</strong>
+            </div>
+            <div class="category-bar__track">
+              <div
+                class="category-bar__fill"
+                [style.width.%]="r.summary.totalExpense ? (row.amount / r.summary.totalExpense * 100) : 0"
+              ></div>
+            </div>
+          </div>
+        }
+      </div>
+    </mat-card>
+  }
+
+  <mat-tab-group>
+    <mat-tab label="Ingresos ({{ r.income.length }})">
+      <mat-card class="content-card mt-4">
+        <table mat-table [dataSource]="r.income" class="w-full data-table">
+          <ng-container matColumnDef="date"><th mat-header-cell *matHeaderCellDef>Fecha</th><td mat-cell *matCellDef="let row">{{ row.date | date:'shortDate' }}</td></ng-container>
+          <ng-container matColumnDef="label"><th mat-header-cell *matHeaderCellDef>Concepto</th><td mat-cell *matCellDef="let row">{{ row.label }}</td></ng-container>
+          <ng-container matColumnDef="category"><th mat-header-cell *matHeaderCellDef>Categoría</th><td mat-cell *matCellDef="let row">{{ categoryLabel(row.category) }}</td></ng-container>
+          <ng-container matColumnDef="amount"><th mat-header-cell *matHeaderCellDef>Monto</th><td mat-cell *matCellDef="let row" class="amount-income">{{ row.amount | currency:'PEN':'S/ ' }}</td></ng-container>
+          <tr mat-header-row *matHeaderRowDef="['date','label','category','amount']"></tr>
+          <tr mat-row *matRowDef="let row; columns: ['date','label','category','amount']"></tr>
+        </table>
+        @if (!r.income.length) {
+          <p class="empty-inline">Sin ingresos en el periodo.</p>
+        }
+      </mat-card>
+    </mat-tab>
+
+    <mat-tab label="Egresos ({{ r.expenses.length }})">
+      <mat-card class="content-card mt-4">
+        <table mat-table [dataSource]="r.expenses" class="w-full data-table">
+          <ng-container matColumnDef="date"><th mat-header-cell *matHeaderCellDef>Fecha</th><td mat-cell *matCellDef="let row">{{ row.date | date:'shortDate' }}</td></ng-container>
+          <ng-container matColumnDef="label"><th mat-header-cell *matHeaderCellDef>Concepto</th><td mat-cell *matCellDef="let row">{{ row.label }}</td></ng-container>
+          <ng-container matColumnDef="category"><th mat-header-cell *matHeaderCellDef>Categoría</th>
+            <td mat-cell *matCellDef="let row">
+              <span class="badge badge--gray">{{ categoryLabel(row.category) }}</span>
+              @if (row.fromMaintenance) {
+                <span class="badge badge--purple ml-1">Mantenimiento</span>
+              }
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="vendor"><th mat-header-cell *matHeaderCellDef>Proveedor</th><td mat-cell *matCellDef="let row">{{ row.vendor || '—' }}</td></ng-container>
+          <ng-container matColumnDef="amount"><th mat-header-cell *matHeaderCellDef>Monto</th><td mat-cell *matCellDef="let row" class="amount-expense">{{ row.amount | currency:'PEN':'S/ ' }}</td></ng-container>
+          <tr mat-header-row *matHeaderRowDef="['date','label','category','vendor','amount']"></tr>
+          <tr mat-row *matRowDef="let row; columns: ['date','label','category','vendor','amount']"></tr>
+        </table>
+        @if (!r.expenses.length) {
+          <p class="empty-inline">Sin egresos en el periodo.</p>
+        }
+      </mat-card>
+    </mat-tab>
+  </mat-tab-group>
+  }
+}

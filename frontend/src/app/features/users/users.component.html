@@ -1,0 +1,40 @@
+<div class="page-header">
+  <div>
+    <app-page-heading emphasis="Usuarios" subtitle="Empleados y cuentas de la empresa (respetando el cupo asignado)" />
+  </div>
+  <button mat-flat-button color="primary" (click)="openCreate()">
+    <mat-icon fontSet="material-icons-round">person_add</mat-icon> Nuevo usuario
+  </button>
+</div>
+
+@if (loading()) {
+  <div class="loading-center"><mat-spinner diameter="40"></mat-spinner></div>
+} @else {
+  <mat-card class="content-card">
+    <table mat-table [dataSource]="items()" class="w-full data-table">
+      <ng-container matColumnDef="name"><th mat-header-cell *matHeaderCellDef>Nombre</th><td mat-cell *matCellDef="let u"><strong>{{ displayName(u) }}</strong></td></ng-container>
+      <ng-container matColumnDef="email"><th mat-header-cell *matHeaderCellDef>Email</th><td mat-cell *matCellDef="let u">{{ u.email }}</td></ng-container>
+      <ng-container matColumnDef="roles"><th mat-header-cell *matHeaderCellDef>Roles</th><td mat-cell *matCellDef="let u">{{ roleNames(u) }}</td></ng-container>
+      <ng-container matColumnDef="status"><th mat-header-cell *matHeaderCellDef>Estado</th><td mat-cell *matCellDef="let u"><span [class]="u.status === 'ACTIVE' ? 'badge badge--green' : 'badge badge--gray'">{{ u.status }}</span></td></ng-container>
+      <ng-container matColumnDef="actions"><th mat-header-cell *matHeaderCellDef></th>
+        <td mat-cell *matCellDef="let u">
+          <div class="table-actions">
+            <button
+              mat-icon-button
+              type="button"
+              [class.table-actions__warn]="u.status === 'ACTIVE'"
+              [class.table-actions__success]="u.status !== 'ACTIVE'"
+              (click)="toggleStatus(u)"
+              [title]="u.status === 'ACTIVE' ? 'Inhabilitar usuario' : 'Activar usuario'"
+              [attr.aria-label]="u.status === 'ACTIVE' ? 'Inhabilitar usuario' : 'Activar usuario'"
+            >
+              <mat-icon fontSet="material-icons-round">{{ u.status === 'ACTIVE' ? 'person_off' : 'person' }}</mat-icon>
+            </button>
+          </div>
+        </td>
+      </ng-container>
+      <tr mat-header-row *matHeaderRowDef="cols"></tr>
+      <tr mat-row *matRowDef="let row; columns: cols"></tr>
+    </table>
+  </mat-card>
+}

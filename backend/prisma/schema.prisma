@@ -1,0 +1,1432 @@
+// Condominium Platform - Multi-tenant SaaS Schema
+// Estrategia: Shared DB + tenantId en todas las entidades de negocio
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── ENUMS ───────────────────────────────────────────────────────────────────
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING
+}
+
+enum OrganizationType {
+  MANAGEMENT_FIRM
+  CONDOMINIUM
+  BUILDING
+}
+
+enum PropertyType {
+  CONDOMINIUM
+  BUILDING
+}
+
+enum UnitType {
+  APARTMENT
+  PARKING
+  STORAGE
+}
+
+enum PersonType {
+  NATURAL
+  LEGAL
+}
+
+enum ResidentType {
+  OWNER
+  FAMILY
+  TENANT
+}
+
+enum OccupancyStatus {
+  OCCUPIED
+  VACANT
+  UNDER_MAINTENANCE
+}
+
+enum StaffRole {
+  ADMINISTRATOR
+  SECURITY
+  CLEANING
+  MAINTENANCE
+  CONCIERGE
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING
+  RESOLVED
+  CLOSED
+  CANCELLED
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TicketType {
+  TICKET
+  COMPLAINT
+  SUGGESTION
+}
+
+enum IncidentStatus {
+  REPORTED
+  ASSIGNED
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum ReservationStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+}
+
+enum EmailJobStatus {
+  PENDING
+  PROCESSING
+  SENT
+  FAILED
+}
+
+enum MaintenanceStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum VisitStatus {
+  SCHEDULED
+  CHECKED_IN
+  CHECKED_OUT
+  CANCELLED
+  EXPIRED
+}
+
+enum VehicleType {
+  CAR
+  MOTORCYCLE
+  BICYCLE
+}
+
+enum CorrespondenceStatus {
+  RECEIVED
+  NOTIFIED
+  DELIVERED
+  RETURNED
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+enum PaymentStatus {
+  PENDING
+  PARTIAL
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum ChargeConceptType {
+  FIXED
+  VARIABLE
+}
+
+enum BillingSheetStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum PurchaseOrderStatus {
+  DRAFT
+  SENT
+  APPROVED
+  RECEIVED
+  CANCELLED
+}
+
+enum ContractStatus {
+  ACTIVE
+  EXPIRED
+  TERMINATED
+  PENDING_RENEWAL
+}
+
+enum SurveyStatus {
+  DRAFT
+  ACTIVE
+  CLOSED
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  RESTORE
+  LOGIN
+  LOGOUT
+  EXPORT
+  VIEW
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  SMS
+}
+
+enum ExportJobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum ExportFormat {
+  EXCEL
+  PDF
+}
+
+// ─── PLATFORM & TENANT ───────────────────────────────────────────────────────
+
+model Tenant {
+  id           String    @id @default(uuid())
+  code         String    @unique
+  name         String
+  legalName    String?
+  taxId        String?
+  email        String
+  phone        String?
+  address      String?
+  logoUrl      String?
+  website      String?
+  timezone     String    @default("America/Lima")
+  currency     String    @default("PEN")
+  locale       String    @default("es")
+  organizationType OrganizationType @default(MANAGEMENT_FIRM)
+  maxUsers     Int       @default(10)
+  settings     Json      @default("{}")
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+
+  users         User[]
+  condominiums  Condominium[]
+  roles         Role[]
+  auditLogs     AuditLog[]
+  correlatives  Correlative[]
+
+  @@index([deletedAt])
+  @@map("tenants")
+}
+
+model Correlative {
+  id        String   @id @default(uuid())
+  tenantId  String
+  module    String
+  prefix    String   @default("")
+  suffix    String   @default("")
+  current   Int      @default(0)
+  padding   Int      @default(6)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, module])
+  @@map("correlatives")
+}
+
+// ─── AUTH & RBAC ─────────────────────────────────────────────────────────────
+
+model User {
+  id                String     @id @default(uuid())
+  tenantId          String
+  email             String
+  passwordHash      String
+  firstName         String
+  lastName          String
+  phone             String?
+  avatarUrl         String?
+  status            UserStatus @default(PENDING)
+  twoFactorEnabled  Boolean    @default(false)
+  twoFactorSecret   String?
+  lastLoginAt       DateTime?
+  passwordChangedAt DateTime?
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+  deletedAt         DateTime?
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id])
+  userRoles    UserRole[]
+  sessions     UserSession[]
+  accessLogs   AccessLog[]
+  auditLogs    AuditLog[]    @relation("AuditUser")
+  residentProfile Resident?
+
+  @@unique([tenantId, email])
+  @@index([tenantId, deletedAt])
+  @@map("users")
+}
+
+model Role {
+  id          String    @id @default(uuid())
+  tenantId    String
+  code        String
+  name        String
+  description String?
+  isSystem    Boolean   @default(false)
+  menuAccess  Json?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  tenant          Tenant           @relation(fields: [tenantId], references: [id])
+  rolePermissions RolePermission[]
+  userRoles       UserRole[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId, deletedAt])
+  @@map("roles")
+}
+
+model Permission {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  module      String
+  action      String
+  description String?
+  createdAt   DateTime @default(now())
+
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model UserRole {
+  userId String
+  roleId String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@map("user_roles")
+}
+
+model UserSession {
+  id           String    @id @default(uuid())
+  userId       String
+  refreshToken String    @unique
+  userAgent    String?
+  ipAddress    String?
+  expiresAt    DateTime
+  revokedAt    DateTime?
+  createdAt    DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("user_sessions")
+}
+
+model AccessLog {
+  id        String   @id @default(uuid())
+  userId    String
+  action    String
+  ipAddress String?
+  userAgent String?
+  success   Boolean
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("access_logs")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  email     String
+  token     String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@map("password_reset_tokens")
+}
+
+// ─── CONDOMINIUM STRUCTURE ───────────────────────────────────────────────────
+
+model Condominium {
+  id          String    @id @default(uuid())
+  tenantId    String
+  code        String
+  name        String
+  address     String?
+  city        String?
+  country     String    @default("PE")
+  latitude    Float?
+  longitude   Float?
+  totalUnits  Int       @default(0)
+  propertyType PropertyType @default(CONDOMINIUM)
+  settings    Json      @default("{}")
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdById String?
+  updatedById String?
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id])
+  towers       Tower[]
+  blocks       Block[]
+  commonAreas  CommonArea[]
+  documents    Document[]
+  floorPlans   FloorPlan[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId, deletedAt])
+  @@map("condominiums")
+}
+
+model Tower {
+  id            String    @id @default(uuid())
+  tenantId      String
+  condominiumId String
+  code          String
+  name          String
+  floorsCount   Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  condominium Condominium @relation(fields: [condominiumId], references: [id])
+  floors      Floor[]
+
+  @@unique([condominiumId, code])
+  @@index([tenantId, deletedAt])
+  @@map("towers")
+}
+
+model Block {
+  id            String    @id @default(uuid())
+  tenantId      String
+  condominiumId String
+  code          String
+  name          String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  condominium Condominium @relation(fields: [condominiumId], references: [id])
+  floors      Floor[]
+
+  @@unique([condominiumId, code])
+  @@index([tenantId, deletedAt])
+  @@map("blocks")
+}
+
+model Floor {
+  id            String    @id @default(uuid())
+  tenantId      String
+  condominiumId String
+  towerId       String?
+  blockId       String?
+  number        Int
+  name          String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  tower  Tower?  @relation(fields: [towerId], references: [id])
+  block  Block?  @relation(fields: [blockId], references: [id])
+  units  Unit[]
+
+  @@index([condominiumId, deletedAt])
+  @@map("floors")
+}
+
+model Unit {
+  id               String          @id @default(uuid())
+  tenantId         String
+  condominiumId    String
+  floorId          String?
+  code             String
+  type             UnitType
+  area             Float?
+  bedrooms         Int?
+  bathrooms        Int?
+  occupancyStatus  OccupancyStatus @default(VACANT)
+  maintenanceFee   Decimal         @default(0) @db.Decimal(12, 2)
+  notes            String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  deletedAt        DateTime?
+
+  floor            Floor?           @relation(fields: [floorId], references: [id])
+  ownerships       UnitOwnership[]
+  residents        Resident[]
+  meters           Meter[]
+  vehicles         Vehicle[]
+  maintenanceFees  MaintenanceFee[]
+  chargeLines      ChargeLine[]
+  tickets          Ticket[]
+  reservations     Reservation[]
+
+  @@unique([condominiumId, code])
+  @@index([tenantId, condominiumId, deletedAt])
+  @@map("units")
+}
+
+model CommonArea {
+  id            String    @id @default(uuid())
+  tenantId      String
+  condominiumId String
+  code          String
+  name          String
+  description   String?
+  capacity      Int?
+  maxReservationHours Int? @default(2)
+  rules         Json      @default("{}")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  condominium  Condominium   @relation(fields: [condominiumId], references: [id])
+  reservations Reservation[]
+  schedules    CommonAreaSchedule[]
+  blocks       CommonAreaBlock[]
+  calendarEvents CalendarEvent[]
+
+  @@unique([condominiumId, code])
+  @@map("common_areas")
+}
+
+model CommonAreaSchedule {
+  id           String   @id @default(uuid())
+  tenantId     String
+  commonAreaId String
+  dayOfWeek    Int
+  startTime    String
+  endTime      String
+  slotMinutes  Int      @default(60)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  commonArea CommonArea @relation(fields: [commonAreaId], references: [id], onDelete: Cascade)
+
+  @@unique([commonAreaId, dayOfWeek])
+  @@map("common_area_schedules")
+}
+
+model CommonAreaBlock {
+  id           String    @id @default(uuid())
+  tenantId     String
+  commonAreaId String
+  startAt      DateTime
+  endAt        DateTime
+  reason       String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+
+  commonArea CommonArea @relation(fields: [commonAreaId], references: [id], onDelete: Cascade)
+
+  @@index([commonAreaId, startAt, endAt])
+  @@map("common_area_blocks")
+}
+
+model FloorPlan {
+  id            String   @id @default(uuid())
+  tenantId      String
+  condominiumId String
+  name          String
+  fileUrl       String
+  floorId       String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  condominium Condominium @relation(fields: [condominiumId], references: [id])
+
+  @@map("floor_plans")
+}
+
+// ─── OWNERS & RESIDENTS ──────────────────────────────────────────────────────
+
+model Owner {
+  id            String     @id @default(uuid())
+  tenantId      String
+  type          PersonType
+  documentType  String
+  documentNumber String
+  firstName     String?
+  lastName      String?
+  legalName     String?
+  email         String?
+  phone         String?
+  address       String?
+  status        String     @default("ACTIVE")
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  deletedAt     DateTime?
+
+  ownerships UnitOwnership[]
+  history    OwnerHistory[]
+  documents  Document[]
+
+  @@unique([tenantId, documentType, documentNumber])
+  @@index([tenantId, deletedAt])
+  @@map("owners")
+}
+
+model UnitOwnership {
+  id           String    @id @default(uuid())
+  tenantId     String
+  unitId       String
+  ownerId      String
+  sharePercent Decimal   @default(100) @db.Decimal(5, 2)
+  startDate    DateTime  @default(now())
+  endDate      DateTime?
+  isPrimary    Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+
+  unit  Unit  @relation(fields: [unitId], references: [id])
+  owner Owner @relation(fields: [ownerId], references: [id])
+
+  @@index([unitId, deletedAt])
+  @@map("unit_ownerships")
+}
+
+model OwnerHistory {
+  id        String   @id @default(uuid())
+  tenantId  String
+  ownerId   String
+  event     String
+  notes     String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  owner Owner @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId, createdAt])
+  @@map("owner_history")
+}
+
+model Resident {
+  id            String       @id @default(uuid())
+  tenantId      String
+  unitId        String
+  type          ResidentType
+  firstName     String
+  lastName      String
+  documentType  String?
+  documentNumber String?
+  email         String?
+  phone         String?
+  moveInDate    DateTime?
+  moveOutDate   DateTime?
+  isPrimary     Boolean      @default(false)
+  userId        String?      @unique
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  deletedAt     DateTime?
+
+  unit    Unit     @relation(fields: [unitId], references: [id])
+  user    User?    @relation(fields: [userId], references: [id])
+  pets    Pet[]
+  history ResidentHistory[]
+  documents Document[]
+  reservations Reservation[]
+
+  @@index([unitId, deletedAt])
+  @@map("residents")
+}
+
+model Pet {
+  id         String    @id @default(uuid())
+  tenantId   String
+  residentId String
+  name       String
+  species    String
+  breed      String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+
+  resident Resident @relation(fields: [residentId], references: [id])
+
+  @@map("pets")
+}
+
+model ResidentHistory {
+  id         String   @id @default(uuid())
+  tenantId   String
+  residentId String
+  event      String
+  notes      String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  resident Resident @relation(fields: [residentId], references: [id])
+
+  @@map("resident_history")
+}
+
+// ─── STAFF ───────────────────────────────────────────────────────────────────
+
+model StaffMember {
+  id            String    @id @default(uuid())
+  tenantId      String
+  condominiumId String?
+  role          StaffRole
+  firstName     String
+  lastName      String
+  documentType  String?
+  documentNumber String?
+  email         String?
+  phone         String?
+  hireDate      DateTime?
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  @@index([tenantId, deletedAt])
+  @@map("staff_members")
+}
+
+// ─── UNITS ADMIN ─────────────────────────────────────────────────────────────
+
+model Meter {
+  id            String   @id @default(uuid())
+  tenantId      String
+  unitId        String
+  type          String
+  serialNumber  String?
+  lastReading   Decimal? @db.Decimal(12, 4)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  deletedAt     DateTime?
+
+  unit     Unit           @relation(fields: [unitId], references: [id])
+  readings MeterReading[]
+
+  @@map("meters")
+}
+
+model MeterReading {
+  id        String   @id @default(uuid())
+  tenantId  String
+  meterId   String
+  value     Decimal  @db.Decimal(12, 4)
+  readAt    DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  meter Meter @relation(fields: [meterId], references: [id])
+
+  @@map("meter_readings")
+}
+
+// ─── FINANCE ─────────────────────────────────────────────────────────────────
+
+model MaintenanceFee {
+  id            String        @id @default(uuid())
+  tenantId      String
+  condominiumId String
+  unitId        String
+  period        String
+  amount        Decimal       @db.Decimal(12, 2)
+  dueDate       DateTime
+  status        PaymentStatus @default(PENDING)
+  paidAmount    Decimal       @default(0) @db.Decimal(12, 2)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  deletedAt     DateTime?
+
+  unit        Unit         @relation(fields: [unitId], references: [id])
+  payments    Payment[]
+  chargeLines ChargeLine[]
+
+  @@index([tenantId, condominiumId, period])
+  @@map("maintenance_fees")
+}
+
+model ChargeConcept {
+  id            String            @id @default(uuid())
+  tenantId      String
+  condominiumId String
+  code          String
+  name          String
+  type          ChargeConceptType
+  sortOrder     Int               @default(0)
+  isActive      Boolean           @default(true)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  lines ChargeLine[]
+
+  @@unique([condominiumId, code])
+  @@index([tenantId, condominiumId])
+  @@map("charge_concepts")
+}
+
+model BillingSheet {
+  id            String             @id @default(uuid())
+  tenantId      String
+  condominiumId String
+  period        String
+  label         String?
+  dueDate       DateTime?
+  status        BillingSheetStatus @default(DRAFT)
+  fixedPools    Json               @default("{}")
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  lines ChargeLine[]
+
+  @@unique([condominiumId, period])
+  @@index([tenantId, condominiumId])
+  @@map("billing_sheets")
+}
+
+model ChargeLine {
+  id               String   @id @default(uuid())
+  tenantId         String
+  billingSheetId   String
+  chargeConceptId  String
+  unitId           String
+  maintenanceFeeId String?
+  amount           Decimal  @default(0) @db.Decimal(12, 2)
+  isManualOverride Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  billingSheet   BillingSheet    @relation(fields: [billingSheetId], references: [id], onDelete: Cascade)
+  chargeConcept  ChargeConcept   @relation(fields: [chargeConceptId], references: [id])
+  unit           Unit            @relation(fields: [unitId], references: [id])
+  maintenanceFee MaintenanceFee? @relation(fields: [maintenanceFeeId], references: [id])
+
+  @@unique([billingSheetId, chargeConceptId, unitId])
+  @@index([tenantId, unitId])
+  @@map("charge_lines")
+}
+
+model Payment {
+  id               String   @id @default(uuid())
+  tenantId         String
+  maintenanceFeeId String?
+  amount           Decimal  @db.Decimal(12, 2)
+  paymentDate      DateTime @default(now())
+  method           String
+  reference        String?
+  notes            String?
+  attachmentUrl    String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  deletedAt        DateTime?
+
+  maintenanceFee MaintenanceFee? @relation(fields: [maintenanceFeeId], references: [id])
+
+  @@map("payments")
+}
+
+model BankAccount {
+  id            String    @id @default(uuid())
+  tenantId      String
+  condominiumId String?
+  bankName      String
+  accountNumber String
+  currency      String    @default("PEN")
+  balance       Decimal   @default(0) @db.Decimal(14, 2)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  transactions Transaction[]
+
+  @@map("bank_accounts")
+}
+
+model Transaction {
+  id              String          @id @default(uuid())
+  tenantId        String
+  condominiumId   String?
+  bankAccountId   String?
+  calendarEventId String?         @unique
+  type            TransactionType
+  category        String
+  amount          Decimal         @db.Decimal(14, 2)
+  description     String?
+  vendor          String?
+  receiptNumber   String?
+  attachmentUrl   String?
+  transactionDate DateTime        @default(now())
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  deletedAt       DateTime?
+
+  bankAccount   BankAccount?   @relation(fields: [bankAccountId], references: [id])
+  calendarEvent CalendarEvent? @relation(fields: [calendarEventId], references: [id])
+
+  @@index([tenantId, transactionDate])
+  @@index([tenantId, condominiumId, type])
+  @@map("transactions")
+}
+
+model Receipt {
+  id            String   @id @default(uuid())
+  tenantId      String
+  condominiumId String
+  number        String
+  unitId        String?
+  amount        Decimal  @db.Decimal(12, 2)
+  issuedAt      DateTime @default(now())
+  pdfUrl        String?
+  metadata      Json?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  deletedAt     DateTime?
+
+  @@unique([tenantId, number])
+  @@map("receipts")
+}
+
+// ─── COMMUNICATIONS ──────────────────────────────────────────────────────────
+
+model Announcement {
+  id            String    @id @default(uuid())
+  tenantId      String
+  condominiumId String
+  title         String
+  content       String
+  publishAt     DateTime  @default(now())
+  expiresAt     DateTime?
+  isPinned      Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  @@index([condominiumId, publishAt])
+  @@map("announcements")
+}
+
+model Notification {
+  id        String              @id @default(uuid())
+  tenantId  String
+  userId    String?
+  channel   NotificationChannel
+  title     String
+  message   String
+  isRead    Boolean             @default(false)
+  metadata  Json?
+  createdAt DateTime            @default(now())
+
+  @@index([userId, isRead])
+  @@map("notifications")
+}
+
+model InternalMessage {
+  id         String    @id @default(uuid())
+  tenantId   String
+  senderId   String
+  receiverId String
+  subject    String
+  body       String
+  isRead     Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+  deletedAt  DateTime?
+
+  @@index([receiverId, isRead])
+  @@map("internal_messages")
+}
+
+// ─── HELP DESK ───────────────────────────────────────────────────────────────
+
+model Ticket {
+  id            String         @id @default(uuid())
+  tenantId      String
+  condominiumId String
+  unitId        String?
+  number        String
+  type          TicketType     @default(TICKET)
+  title         String
+  description   String
+  status        TicketStatus   @default(OPEN)
+  priority      TicketPriority @default(MEDIUM)
+  assignedToId  String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  deletedAt     DateTime?
+
+  unit     Unit?          @relation(fields: [unitId], references: [id])
+  comments TicketComment[]
+
+  @@unique([tenantId, number])
+  @@index([condominiumId, status])
+  @@map("tickets")
+}
+
+model TicketComment {
+  id        String   @id @default(uuid())
+  tenantId  String
+  ticketId  String
+  authorId  String
+  content   String
+  createdAt DateTime @default(now())
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@map("ticket_comments")
+}
+
+// ─── INCIDENTS ───────────────────────────────────────────────────────────────
+
+model Incident {
+  id            String         @id @default(uuid())
+  tenantId      String
+  condominiumId String
+  title         String
+  description   String
+  status        IncidentStatus @default(REPORTED)
+  cost          Decimal?       @db.Decimal(12, 2)
+  assignedToId  String?
+  resolvedAt    DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  deletedAt     DateTime?
+
+  photos IncidentPhoto[]
+
+  @@index([condominiumId, status])
+  @@map("incidents")
+}
+
+model IncidentPhoto {
+  id         String   @id @default(uuid())
+  incidentId String
+  url        String
+  caption    String?
+  createdAt  DateTime @default(now())
+
+  incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@map("incident_photos")
+}
+
+// ─── RESERVATIONS ────────────────────────────────────────────────────────────
+
+model Reservation {
+  id            String            @id @default(uuid())
+  tenantId      String
+  condominiumId String
+  commonAreaId  String
+  unitId        String?
+  residentId    String?
+  startAt       DateTime
+  endAt         DateTime
+  status        ReservationStatus @default(PENDING)
+  penaltyAmount Decimal?          @db.Decimal(12, 2)
+  notes         String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  deletedAt     DateTime?
+
+  commonArea CommonArea @relation(fields: [commonAreaId], references: [id])
+  unit       Unit?      @relation(fields: [unitId], references: [id])
+  resident   Resident?  @relation(fields: [residentId], references: [id])
+
+  @@index([commonAreaId, startAt, endAt])
+  @@map("reservations")
+}
+
+// ─── VISITS ──────────────────────────────────────────────────────────────────
+
+model Visit {
+  id            String      @id @default(uuid())
+  tenantId      String
+  condominiumId String
+  unitId        String?
+  visitorName   String
+  documentType  String?
+  documentNumber String?
+  qrCode        String      @unique
+  status        VisitStatus @default(SCHEDULED)
+  scheduledAt   DateTime
+  checkedInAt   DateTime?
+  checkedOutAt  DateTime?
+  hostName      String?
+  vehiclePlate  String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([condominiumId, scheduledAt])
+  @@map("visits")
+}
+
+// ─── VEHICLES ────────────────────────────────────────────────────────────────
+
+model Vehicle {
+  id            String      @id @default(uuid())
+  tenantId      String
+  unitId        String?
+  type          VehicleType
+  plate         String?
+  brand         String?
+  model         String?
+  color         String?
+  parkingUnitId String?
+  documents     Json        @default("{}")
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  deletedAt     DateTime?
+
+  unit Unit? @relation(fields: [unitId], references: [id])
+
+  @@index([tenantId, plate])
+  @@map("vehicles")
+}
+
+// ─── CORRESPONDENCE ──────────────────────────────────────────────────────────
+
+model Correspondence {
+  id            String               @id @default(uuid())
+  tenantId      String
+  condominiumId String
+  unitId        String?
+  type          String
+  sender        String?
+  recipient     String?
+  description   String?
+  status        CorrespondenceStatus @default(RECEIVED)
+  receivedAt    DateTime             @default(now())
+  deliveredAt   DateTime?
+  evidenceUrl   String?
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+  deletedAt     DateTime?
+
+  @@index([condominiumId, status])
+  @@map("correspondence")
+}
+
+// ─── INVENTORY ───────────────────────────────────────────────────────────────
+
+model InventoryItem {
+  id            String    @id @default(uuid())
+  tenantId      String
+  condominiumId String?
+  sku           String
+  name          String
+  category      String
+  stock         Int       @default(0)
+  minStock      Int       @default(0)
+  unitPrice     Decimal?  @db.Decimal(12, 2)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  movements InventoryMovement[]
+
+  @@unique([tenantId, sku])
+  @@map("inventory_items")
+}
+
+model InventoryMovement {
+  id        String   @id @default(uuid())
+  tenantId  String
+  itemId    String
+  type      String
+  quantity  Int
+  reference String?
+  notes     String?
+  createdAt DateTime @default(now())
+
+  item InventoryItem @relation(fields: [itemId], references: [id])
+
+  @@map("inventory_movements")
+}
+
+// ─── PURCHASES ───────────────────────────────────────────────────────────────
+
+model Supplier {
+  id            String    @id @default(uuid())
+  tenantId      String
+  name          String
+  taxId         String?
+  email         String?
+  phone         String?
+  address       String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  quotes         Quote[]
+  purchaseOrders PurchaseOrder[]
+  contracts      Contract[]
+
+  @@index([tenantId, deletedAt])
+  @@map("suppliers")
+}
+
+model Quote {
+  id         String    @id @default(uuid())
+  tenantId   String
+  supplierId String
+  number     String
+  amount     Decimal   @db.Decimal(14, 2)
+  validUntil DateTime?
+  status     String    @default("PENDING")
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+
+  supplier Supplier @relation(fields: [supplierId], references: [id])
+
+  @@map("quotes")
+}
+
+model PurchaseOrder {
+  id         String              @id @default(uuid())
+  tenantId   String
+  supplierId String
+  number     String
+  status     PurchaseOrderStatus @default(DRAFT)
+  total      Decimal             @db.Decimal(14, 2)
+  orderDate  DateTime            @default(now())
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+  deletedAt  DateTime?
+
+  supplier Supplier @relation(fields: [supplierId], references: [id])
+
+  @@unique([tenantId, number])
+  @@map("purchase_orders")
+}
+
+// ─── CONTRACTS ───────────────────────────────────────────────────────────────
+
+model Contract {
+  id         String         @id @default(uuid())
+  tenantId   String
+  supplierId String?
+  title      String
+  type       String
+  startDate  DateTime
+  endDate    DateTime
+  amount     Decimal?       @db.Decimal(14, 2)
+  status     ContractStatus @default(ACTIVE)
+  fileUrl    String?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  deletedAt  DateTime?
+
+  supplier Supplier? @relation(fields: [supplierId], references: [id])
+
+  @@map("contracts")
+}
+
+// ─── DOCUMENTS ───────────────────────────────────────────────────────────────
+
+model Document {
+  id            String    @id @default(uuid())
+  tenantId      String
+  condominiumId String?
+  ownerId       String?
+  residentId    String?
+  unitId        String?
+  category      String
+  title         String
+  fileUrl       String
+  fileSize      Int?
+  mimeType      String?
+  version       Int       @default(1)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  condominium Condominium? @relation(fields: [condominiumId], references: [id])
+  owner       Owner?       @relation(fields: [ownerId], references: [id])
+  resident    Resident?    @relation(fields: [residentId], references: [id])
+
+  @@index([tenantId, category])
+  @@index([ownerId])
+  @@index([residentId])
+  @@map("documents")
+}
+
+// ─── SURVEYS ─────────────────────────────────────────────────────────────────
+
+model Survey {
+  id            String       @id @default(uuid())
+  tenantId      String
+  condominiumId String
+  title         String
+  description   String?
+  status        SurveyStatus @default(DRAFT)
+  startAt       DateTime?
+  endAt         DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  deletedAt     DateTime?
+
+  questions SurveyQuestion[]
+  votes     SurveyVote[]
+
+  @@map("surveys")
+}
+
+model SurveyQuestion {
+  id       String @id @default(uuid())
+  surveyId String
+  question String
+  type     String @default("SINGLE")
+  options  Json   @default("[]")
+  order    Int    @default(0)
+
+  survey Survey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+
+  @@map("survey_questions")
+}
+
+model SurveyVote {
+  id         String   @id @default(uuid())
+  surveyId   String
+  userId     String?
+  unitId     String?
+  answers    Json
+  createdAt  DateTime @default(now())
+
+  survey Survey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+
+  @@map("survey_votes")
+}
+
+// ─── CALENDAR ────────────────────────────────────────────────────────────────
+
+model CalendarEvent {
+  id            String            @id @default(uuid())
+  tenantId      String
+  condominiumId String?
+  commonAreaId  String?
+  title         String
+  description   String?
+  startAt       DateTime
+  endAt         DateTime
+  allDay        Boolean           @default(false)
+  type          String
+  vendor        String?
+  cost          Decimal?          @db.Decimal(14, 2)
+  attachmentUrl String?
+  status        MaintenanceStatus @default(SCHEDULED)
+  reminderAt    DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  deletedAt     DateTime?
+
+  commonArea         CommonArea?   @relation(fields: [commonAreaId], references: [id])
+  expenseTransaction Transaction?
+
+  @@index([tenantId, startAt])
+  @@index([tenantId, condominiumId, type])
+  @@index([tenantId, commonAreaId, startAt])
+  @@map("calendar_events")
+}
+
+// ─── EMAIL JOBS ──────────────────────────────────────────────────────────────
+
+model EmailJob {
+  id             String         @id @default(uuid())
+  tenantId       String
+  type           String
+  recipientEmail String
+  ownerId        String?
+  unitId         String?
+  subject        String
+  status         EmailJobStatus @default(PENDING)
+  error          String?
+  metadata       Json?
+  sentAt         DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([tenantId, status])
+  @@map("email_jobs")
+}
+
+// ─── AUDIT ───────────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id         String      @id @default(uuid())
+  tenantId   String
+  userId     String?
+  entity     String
+  entityId   String
+  action     AuditAction
+  oldValues  Json?
+  newValues  Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime    @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  user   User?  @relation("AuditUser", fields: [userId], references: [id])
+
+  @@index([tenantId, entity, createdAt])
+  @@index([entityId])
+  @@map("audit_logs")
+}
+
+model ExportJob {
+  id          String          @id @default(uuid())
+  tenantId    String
+  userId      String?
+  module      String
+  format      ExportFormat
+  status      ExportJobStatus @default(PENDING)
+  fileUrl     String?
+  filters     Json?
+  error       String?
+  createdAt   DateTime        @default(now())
+  completedAt DateTime?
+
+  @@index([tenantId, status])
+  @@map("export_jobs")
+}

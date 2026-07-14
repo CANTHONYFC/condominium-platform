@@ -1,0 +1,16 @@
+{
+  "name": "condominium-platform",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SaaS multi-tenant para administración de condominios",
+  "scripts": {
+    "dev:backend": "npm run start:dev --prefix backend",
+    "dev:frontend": "npm start --prefix frontend",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "db:migrate": "npm run prisma:migrate --prefix backend",
+    "db:seed": "npm run prisma:seed --prefix backend",
+    "db:setup": "npm run db:setup --prefix backend",
+    "build": "npm run build --prefix backend && npm run build --prefix frontend"
+  }
+}

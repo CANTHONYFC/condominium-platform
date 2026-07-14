@@ -1,0 +1,98 @@
+<div class="page-header">
+  <div>
+    <app-page-heading emphasis="Inicio" subtitle="Tu resumen como propietario" />
+  </div>
+</div>
+
+@if (loading()) {
+  <div class="loading-center"><mat-spinner diameter="40"></mat-spinner></div>
+} @else {
+  @if (home(); as h) {
+  @if (h.hasPendingDebt) {
+    <div class="debt-alert" role="alert">
+      <mat-icon fontSet="material-icons-round">warning_amber</mat-icon>
+      <div class="debt-alert__content">
+        <strong>Tienes deuda pendiente</strong>
+        <p>
+          Saldo por pagar: <strong>S/ {{ h.pendingBalance | number:'1.2-2' }}</strong>
+          @if (h.pendingDebtsCount > 1) {
+            <span> ({{ h.pendingDebtsCount }} periodos)</span>
+          }
+        </p>
+      </div>
+      <a mat-stroked-button routerLink="/mi-cuenta" class="debt-alert__action">Ver estado de cuenta</a>
+    </div>
+  }
+
+  <div class="welcome-card">
+    <p class="welcome-card__condo">{{ h.condominiumName }}</p>
+    <h2 class="welcome-card__unit">Unidad {{ h.unitCode }}</h2>
+  </div>
+
+  <div class="kpi-grid">
+    <mat-card class="kpi-card">
+      <mat-icon fontSet="material-icons-round" class="kpi-card__icon kpi-card__icon--red">account_balance_wallet</mat-icon>
+      <div>
+        <span class="kpi-card__label">Saldo pendiente</span>
+        <strong class="kpi-card__value" [class.kpi-card__value--debt]="h.pendingBalance > 0">
+          S/ {{ h.pendingBalance | number:'1.2-2' }}
+        </strong>
+      </div>
+    </mat-card>
+
+    <mat-card class="kpi-card">
+      <mat-icon fontSet="material-icons-round" class="kpi-card__icon kpi-card__icon--green">payments</mat-icon>
+      <div>
+        <span class="kpi-card__label">Total pagado</span>
+        <strong class="kpi-card__value">S/ {{ h.summary.totalPaid | number:'1.2-2' }}</strong>
+      </div>
+    </mat-card>
+
+    <mat-card class="kpi-card">
+      <mat-icon fontSet="material-icons-round" class="kpi-card__icon kpi-card__icon--blue">event</mat-icon>
+      <div>
+        <span class="kpi-card__label">Próximas reservas</span>
+        <strong class="kpi-card__value">{{ h.upcomingReservations.length }}</strong>
+      </div>
+    </mat-card>
+  </div>
+
+  <div class="section-grid">
+    <mat-card class="content-card section-card">
+      <div class="section-card__header">
+        <h3>Próximas reservas</h3>
+        <a mat-button routerLink="/mis-reservas">Ver todas</a>
+      </div>
+      @if (h.upcomingReservations.length) {
+        <ul class="reservation-list">
+          @for (r of h.upcomingReservations; track r.id) {
+            <li>
+              <div>
+                <strong>{{ r.commonArea?.name || 'Área común' }}</strong>
+                <span>{{ r.startAt | date:'dd/MM/yyyy HH:mm' }} — {{ r.endAt | date:'HH:mm' }}</span>
+              </div>
+              <span class="badge badge--blue">{{ r.status }}</span>
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="empty-inline">No tienes reservas próximas.</p>
+      }
+    </mat-card>
+
+    <mat-card class="content-card section-card">
+      <div class="section-card__header">
+        <h3>Accesos rápidos</h3>
+      </div>
+      <div class="quick-links">
+        <a mat-stroked-button routerLink="/mis-reservas">
+          <mat-icon fontSet="material-icons-round">event</mat-icon> Mis reservas
+        </a>
+        <a mat-stroked-button routerLink="/mi-cuenta">
+          <mat-icon fontSet="material-icons-round">receipt_long</mat-icon> Mi estado de cuenta
+        </a>
+      </div>
+    </mat-card>
+  </div>
+  }
+}

@@ -1,0 +1,461 @@
+<div class="page-header">
+  <div>
+    <app-page-heading emphasis="Finanzas" />
+    <p class="page-subtitle">Cuadro mensual, cuotas, pagos y estados de cuenta</p>
+  </div>
+  <mat-form-field appearance="outline" class="condo-select">
+    <mat-label>Condominio</mat-label>
+    <mat-select [(ngModel)]="selectedCondoId" (selectionChange)="onCondoChange()">
+      @for (c of condominiums(); track c.id) {
+        <mat-option [value]="c.id">{{ c.code }} — {{ c.name }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+</div>
+
+@if (loading()) {
+  <div class="loading-center"><mat-spinner diameter="40"></mat-spinner></div>
+} @else {
+  <mat-tab-group [selectedIndex]="selectedTabIndex()" (selectedTabChange)="onTab($event)">
+    <mat-tab label="Cuotas">
+      <p class="grid-hint grid-hint--link">
+        ¿Necesitas cargar conserje, agua, luz por departamento?
+        Ve a la pestaña <strong>Cuadro mensual</strong> (al lado).
+      </p>
+      <div class="tab-toolbar">
+        <button mat-flat-button color="primary" (click)="openGenerateFees()">
+          <mat-icon fontSet="material-icons-round">receipt_long</mat-icon> Generar periodo
+        </button>
+        <button mat-stroked-button (click)="openPayment()">
+          <mat-icon fontSet="material-icons-round">payments</mat-icon> Registrar pago
+        </button>
+      </div>
+      <mat-card class="content-card">
+        <table mat-table [dataSource]="fees()" class="w-full data-table">
+          <ng-container matColumnDef="unit"><th mat-header-cell *matHeaderCellDef>Unidad</th><td mat-cell *matCellDef="let f">{{ f.unit?.code }}</td></ng-container>
+          <ng-container matColumnDef="period"><th mat-header-cell *matHeaderCellDef>Periodo</th><td mat-cell *matCellDef="let f">{{ f.period }}</td></ng-container>
+          <ng-container matColumnDef="amount"><th mat-header-cell *matHeaderCellDef>Monto</th><td mat-cell *matCellDef="let f">{{ f.amount | currency:'PEN':'S/ ' }}</td></ng-container>
+          <ng-container matColumnDef="paid"><th mat-header-cell *matHeaderCellDef>Pagado</th><td mat-cell *matCellDef="let f">{{ f.paidAmount | currency:'PEN':'S/ ' }}</td></ng-container>
+          <ng-container matColumnDef="status"><th mat-header-cell *matHeaderCellDef>Estado</th><td mat-cell *matCellDef="let f"><span [class]="statusClass(f.status)">{{ f.status }}</span></td></ng-container>
+          <ng-container matColumnDef="pay"><th mat-header-cell *matHeaderCellDef></th>
+            <td mat-cell *matCellDef="let f">
+              @if (f.status !== 'PAID') {
+                <div class="table-actions">
+                  <button mat-icon-button type="button" class="table-actions__primary" (click)="payFee(f)" title="Registrar pago" aria-label="Registrar pago">
+                    <mat-icon fontSet="material-icons-round">payments</mat-icon>
+                  </button>
+                </div>
+              }
+            </td>
+          </ng-container>
+          <tr mat-header-row *matHeaderRowDef="feeCols"></tr>
+          <tr mat-row *matRowDef="let row; columns: feeCols"></tr>
+        </table>
+        @if (!fees().length) {
+          <p class="empty-inline">No hay cuotas. Genera el periodo del mes.</p>
+        }
+      </mat-card>
+    </mat-tab>
+
+    <mat-tab label="Cuadro mensual">
+      <div class="tab-toolbar flex-wrap">
+        <app-period-month-field
+          [(ngModel)]="billingPeriod"
+          label="Periodo"
+          fieldClass="period-field"
+          (ngModelChange)="loadBillingGrid()"
+        />
+        <button mat-stroked-button (click)="loadBillingGrid()" [disabled]="gridLoading()">
+          <mat-icon fontSet="material-icons-round">refresh</mat-icon> Actualizar
+        </button>
+        @if (billingGrid(); as grid) {
+          @if (grid.sheet.status === 'DRAFT') {
+            <button mat-flat-button color="primary" (click)="saveBillingGrid()" [disabled]="gridSaving()">
+              <mat-icon fontSet="material-icons-round">save</mat-icon> Guardar y repartir
+            </button>
+            <button mat-flat-button color="accent" (click)="publishBillingGrid()" [disabled]="gridSaving()">
+              <mat-icon fontSet="material-icons-round">publish</mat-icon> Publicar cuotas
+            </button>
+          } @else {
+            <span class="badge badge--green">Publicado</span>
+          }
+        }
+      </div>
+      <p class="grid-hint">
+        Marca <strong>Fijo</strong> para repartir el total del edificio entre propietarios; desmarca para ingresar monto por departamento.
+      </p>
+      @if (gridLoading()) {
+        <div class="loading-center"><mat-spinner diameter="40"></mat-spinner></div>
+      } @else {
+        @if (billingGrid(); as grid) {
+          @if (!grid.rows.length) {
+            <p class="empty-inline">No hay departamentos con propietario asignado en este edificio.</p>
+          } @else {
+        <mat-card class="content-card billing-grid-card">
+          <div class="billing-grid-scroll">
+            <table class="billing-grid">
+              <thead>
+                <tr class="billing-grid__head-main">
+                  <th class="sticky-col sticky-col--1">Dpto.</th>
+                  <th class="sticky-col sticky-col--2">Propietario</th>
+                  @for (c of grid.concepts; track c.id) {
+                    <th [class.col-fixed]="isConceptFixed(c)" [class.col-variable]="!isConceptFixed(c)">
+                      <span class="concept-name">{{ c.name }}</span>
+                      @if (grid.sheet.status === 'DRAFT') {
+                        <label class="concept-type-toggle">
+                          <mat-checkbox
+                            [checked]="isConceptFixed(c)"
+                            (change)="toggleConceptType(c, $event.checked)"
+                            color="primary"
+                          />
+                          <span>Fijo</span>
+                        </label>
+                      } @else {
+                        <span class="col-tag">{{ isConceptFixed(c) ? 'fijo' : 'variable' }}</span>
+                      }
+                    </th>
+                  }
+                  <th class="col-total">Total</th>
+                </tr>
+                <tr class="billing-grid__head-pools">
+                  <th colspan="2" class="sticky-col sticky-col--pool">Total edificio →</th>
+                  @for (c of grid.concepts; track c.id) {
+                    <th>
+                      @if (isConceptFixed(c)) {
+                        @if (grid.sheet.status === 'DRAFT') {
+                          <input
+                            type="number"
+                            class="pool-input"
+                            [ngModel]="poolAmount(c)"
+                            (ngModelChange)="setPoolAmount(c.id, $event)"
+                            step="0.01"
+                            min="0"
+                          />
+                        } @else {
+                          S/ {{ formatMoney(poolAmount(c)) }}
+                        }
+                      } @else {
+                        <span class="pool-label">por dpto.</span>
+                      }
+                    </th>
+                  }
+                  <th class="col-total">S/ {{ formatMoney(grandTotalLive(grid)) }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of grid.rows; track row.unitId) {
+                  <tr>
+                    <td class="sticky-col sticky-col--1"><strong>{{ row.unitCode }}</strong></td>
+                    <td class="sticky-col sticky-col--2">{{ row.ownerName }}</td>
+                    @for (c of grid.concepts; track c.id) {
+                      <td [class.col-fixed]="isConceptFixed(c)" [class.col-variable]="!isConceptFixed(c)">
+                        @if (isConceptFixed(c)) {
+                          S/ {{ formatMoney(grid.sheet.status === 'DRAFT' ? fixedPerUnit(grid, c) : row.cells[c.id].amount) }}
+                        } @else if (grid.sheet.status === 'DRAFT') {
+                          <input
+                            type="number"
+                            class="cell-input"
+                            [ngModel]="getCellAmount(row.unitId, c.id, row.cells[c.id].amount)"
+                            (ngModelChange)="onCellInput(row.unitId, c.id, $event)"
+                            step="0.01"
+                            min="0"
+                          />
+                        } @else {
+                          S/ {{ formatMoney(row.cells[c.id].amount) }}
+                        }
+                      </td>
+                    }
+                    <td class="col-total"><strong>S/ {{ formatMoney(rowTotal(grid, row.unitId)) }}</strong></td>
+                  </tr>
+                }
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td colspan="2" class="sticky-col sticky-col--foot"><strong>TOTAL</strong></td>
+                  @for (c of grid.concepts; track c.id) {
+                    <td><strong>S/ {{ formatMoney(columnTotalLive(grid, c.id)) }}</strong></td>
+                  }
+                  <td class="col-total"><strong>S/ {{ formatMoney(grandTotalLive(grid)) }}</strong></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </mat-card>
+          }
+        } @else {
+        <p class="empty-inline">Selecciona condominio y periodo para cargar el cuadro.</p>
+        }
+      }
+    </mat-tab>
+
+    <mat-tab label="Pagos">
+      <mat-card class="content-card mt-4">
+        <table mat-table [dataSource]="payments()" class="w-full data-table">
+          <ng-container matColumnDef="date"><th mat-header-cell *matHeaderCellDef>Fecha</th><td mat-cell *matCellDef="let p">{{ p.paymentDate | date:'shortDate' }}</td></ng-container>
+          <ng-container matColumnDef="unit"><th mat-header-cell *matHeaderCellDef>Unidad</th><td mat-cell *matCellDef="let p">{{ p.maintenanceFee?.unit?.code || '—' }}</td></ng-container>
+          <ng-container matColumnDef="amount"><th mat-header-cell *matHeaderCellDef>Monto</th><td mat-cell *matCellDef="let p">{{ p.amount | currency:'PEN':'S/ ' }}</td></ng-container>
+          <ng-container matColumnDef="method"><th mat-header-cell *matHeaderCellDef>Método</th><td mat-cell *matCellDef="let p">{{ p.method }}</td></ng-container>
+          <ng-container matColumnDef="reference"><th mat-header-cell *matHeaderCellDef>Ref.</th><td mat-cell *matCellDef="let p">{{ p.reference || '—' }}</td></ng-container>
+          <ng-container matColumnDef="receipt"><th mat-header-cell *matHeaderCellDef>Comprobante</th>
+            <td mat-cell *matCellDef="let p">
+              @if (p.attachmentUrl) {
+                <div class="table-actions">
+                  <a
+                    mat-icon-button
+                    class="table-actions__primary"
+                    [href]="serverUrl + p.attachmentUrl"
+                    target="_blank"
+                    rel="noopener"
+                    title="Ver comprobante"
+                    aria-label="Ver comprobante"
+                  >
+                    <mat-icon fontSet="material-icons-round">attach_file</mat-icon>
+                  </a>
+                </div>
+              } @else {
+                —
+              }
+            </td>
+          </ng-container>
+          <tr mat-header-row *matHeaderRowDef="paymentCols"></tr>
+          <tr mat-row *matRowDef="let row; columns: paymentCols"></tr>
+        </table>
+      </mat-card>
+    </mat-tab>
+
+    <mat-tab label="Morosidad">
+      <div class="tab-toolbar flex-wrap">
+        <button mat-stroked-button (click)="loadMorosity()" [disabled]="morosityLoading()">
+          <mat-icon fontSet="material-icons-round">refresh</mat-icon> Actualizar
+        </button>
+        <button mat-stroked-button (click)="sendStatementsEmail(true)">
+          <mat-icon fontSet="material-icons-round">email</mat-icon> Enviar estados de cuenta (morosos)
+        </button>
+        <button mat-stroked-button (click)="runCronNow()">
+          <mat-icon fontSet="material-icons-round">schedule</mat-icon> Ejecutar cron ahora
+        </button>
+      </div>
+      <p class="cron-hint">Envío automático diario a las 8:00 AM (configurable con MOROSITY_CRON_SCHEDULE en .env)</p>
+
+      @if (morosityLoading()) {
+        <div class="loading-center"><mat-spinner diameter="40"></mat-spinner></div>
+      } @else {
+        @if (morosity(); as m) {
+        <mat-card class="content-card p-4">
+          <div class="morosity-summary">
+            <div class="morosity-summary__stat">
+              <span class="label">Cuotas pendientes</span>
+              <strong>{{ m.total }}</strong>
+            </div>
+            <div class="morosity-summary__stat morosity-summary__stat--debt">
+              <span class="label">Deuda total</span>
+              <strong>S/ {{ formatMoney(m.totalDebt) }}</strong>
+            </div>
+          </div>
+
+          @if (!m.items.length) {
+            <p class="empty-inline">No hay morosidad registrada en este edificio.</p>
+          } @else {
+            <table mat-table [dataSource]="m.items" class="w-full data-table mt-4 morosity-table">
+              <ng-container matColumnDef="unit">
+                <th mat-header-cell *matHeaderCellDef>Dpto.</th>
+                <td mat-cell *matCellDef="let i"><strong>{{ i.unitCode }}</strong></td>
+              </ng-container>
+              <ng-container matColumnDef="owner">
+                <th mat-header-cell *matHeaderCellDef>Propietario (deudor)</th>
+                <td mat-cell *matCellDef="let i">{{ i.ownerName }}</td>
+              </ng-container>
+              <ng-container matColumnDef="phone">
+                <th mat-header-cell *matHeaderCellDef>Teléfono</th>
+                <td mat-cell *matCellDef="let i">{{ i.ownerPhone || '—' }}</td>
+              </ng-container>
+              <ng-container matColumnDef="email">
+                <th mat-header-cell *matHeaderCellDef>Correo</th>
+                <td mat-cell *matCellDef="let i">{{ i.ownerEmail || '—' }}</td>
+              </ng-container>
+              <ng-container matColumnDef="period">
+                <th mat-header-cell *matHeaderCellDef>Periodo</th>
+                <td mat-cell *matCellDef="let i">
+                  <strong>{{ i.periodLabel }}</strong>
+                  <span class="period-code">{{ i.period }}</span>
+                </td>
+              </ng-container>
+              <ng-container matColumnDef="morAmount">
+                <th mat-header-cell *matHeaderCellDef>Cuota</th>
+                <td mat-cell *matCellDef="let i">S/ {{ formatMoney(i.amount) }}</td>
+              </ng-container>
+              <ng-container matColumnDef="morPaid">
+                <th mat-header-cell *matHeaderCellDef>Pagado</th>
+                <td mat-cell *matCellDef="let i">S/ {{ formatMoney(i.paid) }}</td>
+              </ng-container>
+              <ng-container matColumnDef="morBalance">
+                <th mat-header-cell *matHeaderCellDef>Saldo</th>
+                <td mat-cell *matCellDef="let i"><strong class="debt-amount">S/ {{ formatMoney(i.balance) }}</strong></td>
+              </ng-container>
+              <ng-container matColumnDef="morDueDate">
+                <th mat-header-cell *matHeaderCellDef>Vencimiento</th>
+                <td mat-cell *matCellDef="let i">{{ formatMorosityDate(i.dueDate) }}</td>
+              </ng-container>
+              <ng-container matColumnDef="morStatus">
+                <th mat-header-cell *matHeaderCellDef>Estado</th>
+                <td mat-cell *matCellDef="let i">
+                  <span [class]="statusClass(i.status)">{{ morosityStatusLabel(i.status) }}</span>
+                </td>
+              </ng-container>
+              <tr mat-header-row *matHeaderRowDef="morosityCols"></tr>
+              <tr mat-row *matRowDef="let row; columns: morosityCols"></tr>
+            </table>
+          }
+        </mat-card>
+        }
+      }
+    </mat-tab>
+
+    <mat-tab label="Estado de cuenta">
+      <p class="grid-hint">
+        Solo departamentos con propietario. Busca por código, nombre, teléfono o correo.
+      </p>
+      <div class="tab-toolbar flex-wrap gap-4">
+        <mat-form-field appearance="outline" class="search-field">
+          <mat-label>Buscar</mat-label>
+          <mat-icon matPrefix fontSet="material-icons-round">search</mat-icon>
+          <input
+            matInput
+            [(ngModel)]="statementSearch"
+            (ngModelChange)="onStatementSearch()"
+            placeholder="Dpto., propietario, teléfono, correo..."
+          />
+        </mat-form-field>
+        <button mat-stroked-button (click)="loadStatementSummaries()" [disabled]="statementSummariesLoading()">
+          <mat-icon fontSet="material-icons-round">refresh</mat-icon> Actualizar
+        </button>
+      </div>
+
+      @if (statementSummariesLoading()) {
+        <div class="loading-center"><mat-spinner diameter="40"></mat-spinner></div>
+      } @else {
+        <mat-card class="content-card">
+          <table mat-table [dataSource]="statementSummaries()" class="w-full data-table statement-table">
+            <ng-container matColumnDef="unitCode">
+              <th mat-header-cell *matHeaderCellDef>Dpto.</th>
+              <td mat-cell *matCellDef="let row"><strong>{{ row.unitCode }}</strong></td>
+            </ng-container>
+            <ng-container matColumnDef="owner">
+              <th mat-header-cell *matHeaderCellDef>Propietario</th>
+              <td mat-cell *matCellDef="let row">{{ row.owner?.name || '—' }}</td>
+            </ng-container>
+            <ng-container matColumnDef="phone">
+              <th mat-header-cell *matHeaderCellDef>Teléfono</th>
+              <td mat-cell *matCellDef="let row">{{ row.owner?.phone || '—' }}</td>
+            </ng-container>
+            <ng-container matColumnDef="email">
+              <th mat-header-cell *matHeaderCellDef>Correo</th>
+              <td mat-cell *matCellDef="let row">{{ row.owner?.email || '—' }}</td>
+            </ng-container>
+            <ng-container matColumnDef="paidMonths">
+              <th mat-header-cell *matHeaderCellDef>Meses pagados</th>
+              <td mat-cell *matCellDef="let row">
+                <span class="paid-months" [title]="row.paidPeriodsLabel">{{ row.paidPeriodsLabel }}</span>
+              </td>
+            </ng-container>
+            <ng-container matColumnDef="status">
+              <th mat-header-cell *matHeaderCellDef>Estado</th>
+              <td mat-cell *matCellDef="let row">
+                <span [class]="statementStatusClass(row)">{{ row.statusLabel }}</span>
+                @if (row.pendingDebts.length) {
+                  <div class="debt-hint">{{ pendingDebtsLabel(row) }}</div>
+                }
+              </td>
+            </ng-container>
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef></th>
+              <td mat-cell *matCellDef="let row">
+                <div class="table-actions">
+                  <button mat-icon-button type="button" class="table-actions__primary" (click)="viewStatement(row)" title="Ver estado de cuenta" aria-label="Ver estado de cuenta">
+                    <mat-icon fontSet="material-icons-round">visibility</mat-icon>
+                  </button>
+                  <button mat-icon-button type="button" class="table-actions__primary" (click)="downloadStatementPdf(row.unitId, 'latest')" title="PDF último mes" aria-label="PDF último mes">
+                    <mat-icon fontSet="material-icons-round">receipt</mat-icon>
+                  </button>
+                  <button mat-icon-button type="button" (click)="downloadStatementPdf(row.unitId, 'history')" title="PDF historial" aria-label="PDF historial">
+                    <mat-icon fontSet="material-icons-round">history</mat-icon>
+                  </button>
+                </div>
+              </td>
+            </ng-container>
+            <tr mat-header-row *matHeaderRowDef="statementCols"></tr>
+            <tr mat-row *matRowDef="let row; columns: statementCols" class="statement-row"></tr>
+          </table>
+          @if (!statementSummaries().length) {
+            <p class="empty-inline">No hay departamentos con propietario asignado.</p>
+          }
+        </mat-card>
+      }
+
+      @if (statementDetailLoading()) {
+        <div class="loading-center"><mat-spinner diameter="32"></mat-spinner></div>
+      }
+      @if (statement(); as s) {
+        <mat-card class="content-card p-4 statement-detail-card">
+          <div class="statement-detail-header">
+            <div>
+              <h3 class="text-lg font-semibold mb-1">Unidad {{ s.unit.code }}</h3>
+              @if (s.owner) {
+                <p class="statement-owner-meta">{{ s.owner.name }} · {{ s.owner.phone || 'Sin teléfono' }} · {{ s.owner.email || 'Sin correo' }}</p>
+              }
+            </div>
+            <div class="statement-download-actions">
+              <button mat-flat-button color="primary" (click)="downloadStatementPdf(s.unit.id, 'latest')">
+                <mat-icon fontSet="material-icons-round">receipt</mat-icon> PDF último mes
+              </button>
+              <button mat-stroked-button color="primary" (click)="downloadStatementPdf(s.unit.id, 'history')">
+                <mat-icon fontSet="material-icons-round">history</mat-icon> PDF historial
+              </button>
+            </div>
+          </div>
+          <div class="summary-grid">
+            <div><span class="label">Total cargado</span><span>S/ {{ s.summary.totalCharged | number:'1.2-2' }}</span></div>
+            <div><span class="label">Total pagado</span><span>S/ {{ s.summary.totalPaid | number:'1.2-2' }}</span></div>
+            <div><span class="label">Saldo pendiente</span><strong class="text-red-600">S/ {{ s.summary.balance | number:'1.2-2' }}</strong></div>
+          </div>
+          @if (s.paidPeriods?.length) {
+            <p class="detail-section-title">Meses pagados</p>
+            <p class="detail-tags">{{ formatPaidPeriodsDetail(s.paidPeriods) }}</p>
+          }
+          @if (s.pendingDebts?.length) {
+            <p class="detail-section-title detail-section-title--debt">Deuda pendiente</p>
+            <ul class="debt-list">
+              @for (d of s.pendingDebts; track d.period) {
+                <li>{{ d.label }}: falta pagar <strong>S/ {{ d.balance | number:'1.2-2' }}</strong> de S/ {{ d.amount | number:'1.2-2' }}</li>
+              }
+            </ul>
+          }
+          <table mat-table [dataSource]="s.fees" class="w-full data-table mt-4">
+            <ng-container matColumnDef="period"><th mat-header-cell *matHeaderCellDef>Periodo</th><td mat-cell *matCellDef="let f">{{ f.period }}</td></ng-container>
+            <ng-container matColumnDef="concepts"><th mat-header-cell *matHeaderCellDef>Detalle conceptos</th>
+              <td mat-cell *matCellDef="let f">
+                @if (f.concepts?.length) {
+                  <ul class="concept-list">
+                    @for (c of f.concepts; track c.code) {
+                      @if (c.amount > 0) {
+                        <li>{{ c.name }}: S/ {{ c.amount | number:'1.2-2' }}</li>
+                      }
+                    }
+                  </ul>
+                } @else {
+                  <span class="text-slate-500">Cuota única</span>
+                }
+              </td>
+            </ng-container>
+            <ng-container matColumnDef="amount"><th mat-header-cell *matHeaderCellDef>Monto</th><td mat-cell *matCellDef="let f">S/ {{ f.amount | number:'1.2-2' }}</td></ng-container>
+            <ng-container matColumnDef="paid"><th mat-header-cell *matHeaderCellDef>Pagado</th><td mat-cell *matCellDef="let f">S/ {{ f.paidAmount | number:'1.2-2' }}</td></ng-container>
+            <ng-container matColumnDef="balance"><th mat-header-cell *matHeaderCellDef>Saldo</th><td mat-cell *matCellDef="let f">S/ {{ f.balance | number:'1.2-2' }}</td></ng-container>
+            <ng-container matColumnDef="status"><th mat-header-cell *matHeaderCellDef>Estado</th><td mat-cell *matCellDef="let f"><span [class]="statusClass(f.status)">{{ f.status }}</span></td></ng-container>
+            <tr mat-header-row *matHeaderRowDef="['period','concepts','amount','paid','balance','status']"></tr>
+            <tr mat-row *matRowDef="let row; columns: ['period','concepts','amount','paid','balance','status']"></tr>
+          </table>
+        </mat-card>
+      }
+    </mat-tab>
+  </mat-tab-group>
+}

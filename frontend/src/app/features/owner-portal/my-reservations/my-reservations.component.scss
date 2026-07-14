@@ -1,0 +1,234 @@
+.reservations-page {
+  &__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+}
+
+.new-btn mat-icon {
+  margin-right: 4px;
+}
+
+.reservations-layout {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.reservations-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.sidebar-card {
+  padding: 16px !important;
+  border-radius: 14px !important;
+
+  &--info {
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(99, 102, 241, 0.08));
+    border: 1px solid rgba(59, 130, 246, 0.2);
+  }
+
+  &--events {
+    padding-bottom: 12px !important;
+  }
+
+  &__label {
+    margin: 0 0 8px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-secondary, #94a3b8);
+  }
+
+  &__title {
+    margin: 0 0 4px;
+    font-size: 22px;
+    font-weight: 700;
+  }
+
+  &__meta {
+    margin: 0;
+    font-size: 13px;
+    color: var(--text-secondary, #94a3b8);
+  }
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+      color: #60a5fa;
+    }
+
+    h3 {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 600;
+    }
+  }
+}
+
+.area-filter {
+  width: 100%;
+  margin: 0;
+}
+
+.legend-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.legend-chip {
+  font-size: 12px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-weight: 500;
+
+  &--blue { background: #dbeafe; color: #1d4ed8; }
+  &--orange { background: #ffedd5; color: #c2410c; }
+}
+
+.event-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+
+  &__item {
+    display: flex;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+
+    &:last-child { border-bottom: none; }
+
+    strong {
+      display: block;
+      font-size: 13px;
+      margin-bottom: 2px;
+    }
+
+    span {
+      font-size: 12px;
+      color: var(--text-secondary, #94a3b8);
+    }
+  }
+
+  &__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-top: 6px;
+    flex-shrink: 0;
+
+    &--blue { background: #3b82f6; }
+    &--orange { background: #f97316; }
+  }
+}
+
+.sidebar-empty {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-secondary, #94a3b8);
+}
+
+.reservations-main {
+  min-width: 0;
+}
+
+.calendar-card {
+  padding: 0 !important;
+  overflow: hidden;
+  border-radius: 16px !important;
+  position: relative;
+
+  &__loading {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(15, 23, 42, 0.35);
+    z-index: 2;
+    border-radius: 16px;
+  }
+
+  &__inner {
+    transition: opacity 0.2s;
+
+    &--loading {
+      opacity: 0.45;
+      pointer-events: none;
+    }
+  }
+}
+
+.calendar-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 12px 18px;
+  font-size: 13px;
+  color: var(--text-secondary, #94a3b8);
+  border-top: 1px solid rgba(148, 163, 184, 0.15);
+  background: rgba(248, 250, 252, 0.03);
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+:host ::ng-deep .owner-month-calendar .month-cal {
+  border: none;
+  border-radius: 0;
+  min-height: 100%;
+}
+
+:host ::ng-deep .owner-month-calendar .month-cal__grid {
+  min-height: 560px;
+}
+
+:host ::ng-deep .owner-month-calendar .month-cal__cell {
+  min-height: 110px;
+}
+
+:host ::ng-deep .owner-month-calendar .month-cal__header {
+  padding: 18px 12px;
+}
+
+:host ::ng-deep .owner-month-calendar .month-cal__title strong {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+:host ::ng-deep .owner-month-calendar .month-cal__event {
+  font-size: 11px;
+  padding: 3px 6px;
+  border-radius: 6px;
+}
+
+@media (max-width: 960px) {
+  .reservations-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .reservations-sidebar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  }
+}

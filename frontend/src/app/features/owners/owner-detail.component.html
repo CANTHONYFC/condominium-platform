@@ -1,0 +1,80 @@
+<a routerLink="/owners" class="back-link">
+  <mat-icon fontSet="material-icons-round">arrow_back</mat-icon> Propietarios
+</a>
+
+@if (loading()) {
+  <div class="loading-center"><mat-spinner diameter="40"></mat-spinner></div>
+} @else {
+  @if (owner(); as o) {
+  <div class="page-header">
+    <div>
+      <app-page-heading
+        [emphasis]="displayName(o)"
+        [subtitle]="o.documentType + ' ' + o.documentNumber + ' · ' + (o.email || 'Sin email')"
+      />
+    </div>
+  </div>
+
+  <mat-tab-group>
+    <mat-tab label="Copropiedad">
+      <div class="tab-toolbar">
+        <button mat-flat-button color="primary" (click)="assignUnit()">
+          <mat-icon fontSet="material-icons-round">add</mat-icon> Asignar unidad
+        </button>
+      </div>
+      @if (o.ownerships?.length) {
+        <table mat-table [dataSource]="o.ownerships!" class="w-full data-table">
+          <ng-container matColumnDef="location"><th mat-header-cell *matHeaderCellDef>Ubicación</th><td mat-cell *matCellDef="let x">{{ unitLocation(x) }}</td></ng-container>
+          <ng-container matColumnDef="unit"><th mat-header-cell *matHeaderCellDef>Código</th><td mat-cell *matCellDef="let x">{{ x.unit?.code }}</td></ng-container>
+          <ng-container matColumnDef="share"><th mat-header-cell *matHeaderCellDef>%</th><td mat-cell *matCellDef="let x">{{ x.sharePercent }}%</td></ng-container>
+          <ng-container matColumnDef="actions"><th mat-header-cell *matHeaderCellDef></th>
+            <td mat-cell *matCellDef="let x">
+              <button mat-icon-button (click)="removeOwnership(x.id)"><mat-icon fontSet="material-icons-round">link_off</mat-icon></button>
+            </td>
+          </ng-container>
+          <tr mat-header-row *matHeaderRowDef="['location','unit','share','actions']"></tr>
+          <tr mat-row *matRowDef="let row; columns: ['location','unit','share','actions']"></tr>
+        </table>
+      } @else {
+        <p class="empty-inline">Sin departamento asignado. Use «Asignar unidad» para vincularlo al edificio (ej. Torre A · Piso 2 · Dpto. 101).</p>
+      }
+    </mat-tab>
+
+    <mat-tab label="Historial">
+      @if (o.history?.length) {
+        <ul class="history-list">
+          @for (h of o.history; track h.id) {
+            <li><strong>{{ h.event }}</strong> — {{ h.notes || '' }} <span class="date">{{ h.createdAt | date:'short' }}</span></li>
+          }
+        </ul>
+      } @else {
+        <p class="empty-inline">Sin historial</p>
+      }
+    </mat-tab>
+
+    <mat-tab label="Documentos">
+      <div class="tab-toolbar">
+        <button mat-flat-button color="primary" (click)="addDocument()">
+          <mat-icon fontSet="material-icons-round">attach_file</mat-icon> Agregar
+        </button>
+      </div>
+      @if (o.documents?.length) {
+        <table mat-table [dataSource]="o.documents!" class="w-full data-table">
+          <ng-container matColumnDef="title"><th mat-header-cell *matHeaderCellDef>Título</th><td mat-cell *matCellDef="let d">{{ d.title }}</td></ng-container>
+          <ng-container matColumnDef="cat"><th mat-header-cell *matHeaderCellDef>Categoría</th><td mat-cell *matCellDef="let d">{{ d.category }}</td></ng-container>
+          <ng-container matColumnDef="actions"><th mat-header-cell *matHeaderCellDef></th>
+            <td mat-cell *matCellDef="let d">
+              <a mat-button [href]="d.fileUrl" target="_blank">Ver</a>
+              <button mat-icon-button (click)="removeDocument(d.id)"><mat-icon fontSet="material-icons-round">delete</mat-icon></button>
+            </td>
+          </ng-container>
+          <tr mat-header-row *matHeaderRowDef="['title','cat','actions']"></tr>
+          <tr mat-row *matRowDef="let row; columns: ['title','cat','actions']"></tr>
+        </table>
+      } @else {
+        <p class="empty-inline">Sin documentos</p>
+      }
+    </mat-tab>
+  </mat-tab-group>
+  }
+}

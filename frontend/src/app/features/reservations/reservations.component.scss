@@ -1,0 +1,19 @@
+@use '../feature-shared' as *;
+
+.calendar-legend {
+  margin: 0;
+}
+
+.calendar-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 16px 0 12px;
+}
+
+.calendar-area-filter {
+  min-width: 220px;
+  margin: 0;
+}

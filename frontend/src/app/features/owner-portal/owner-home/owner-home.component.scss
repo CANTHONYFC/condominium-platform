@@ -1,0 +1,148 @@
+.debt-alert {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(220, 38, 38, 0.08));
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #fecaca;
+
+  mat-icon {
+    color: #f87171;
+    flex-shrink: 0;
+  }
+
+  &__content {
+    flex: 1;
+    min-width: 0;
+
+    strong {
+      display: block;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+
+    p {
+      margin: 0;
+      font-size: 14px;
+      color: #fca5a5;
+    }
+  }
+
+  &__action {
+    flex-shrink: 0;
+    border-color: rgba(252, 165, 165, 0.5) !important;
+    color: #fecaca !important;
+  }
+}
+
+.welcome-card {
+  margin-bottom: 20px;
+
+  &__condo {
+    margin: 0 0 4px;
+    font-size: 13px;
+    color: var(--text-secondary, #94a3b8);
+  }
+
+  &__unit {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 700;
+  }
+}
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.kpi-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 20px !important;
+
+  &__icon {
+    font-size: 28px;
+    width: 28px;
+    height: 28px;
+
+    &--red { color: #f87171; }
+    &--green { color: #4ade80; }
+    &--blue { color: #60a5fa; }
+  }
+
+  &__label {
+    display: block;
+    font-size: 12px;
+    color: var(--text-secondary, #94a3b8);
+    margin-bottom: 4px;
+  }
+
+  &__value {
+    font-size: 20px;
+
+    &--debt { color: #f87171; }
+  }
+}
+
+.section-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.section-card {
+  padding: 20px !important;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+
+    h3 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+    }
+  }
+}
+
+.reservation-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+
+  li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+
+    &:last-child { border-bottom: none; }
+
+    strong {
+      display: block;
+      margin-bottom: 2px;
+    }
+
+    span {
+      font-size: 12px;
+      color: var(--text-secondary, #94a3b8);
+    }
+  }
+}
+
+.quick-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}

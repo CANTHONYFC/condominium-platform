@@ -1,0 +1,297 @@
+<mat-sidenav-container class="app-shell">
+
+  <mat-sidenav mode="side" opened class="sidebar-drawer" [disableClose]="true">
+
+    <div class="sidebar">
+
+      <div class="sidebar__brand">
+
+        <div class="sidebar__brand-logo">CP</div>
+
+        <div class="sidebar__brand-text">
+
+          <span class="sidebar__brand-name">Condominium.co</span>
+
+          <span class="sidebar__brand-user">{{ userName() }}</span>
+
+          @if (userRole()) {
+            <span class="sidebar__brand-role">{{ userRole() }}</span>
+          }
+
+        </div>
+
+      </div>
+
+
+
+      <nav class="sidebar__nav">
+
+        @for (item of topItems(); track item.path) {
+
+          <a
+
+            class="nav-single"
+
+            [routerLink]="item.path"
+
+            routerLinkActive="nav-single--active"
+
+            [routerLinkActiveOptions]="{ exact: item.exact ?? false }"
+
+          >
+
+            <div class="nav-single__pill">
+
+              <mat-icon fontSet="material-icons-round">{{ item.icon }}</mat-icon>
+
+            </div>
+
+            <span class="nav-single__label">{{ item.label }}</span>
+
+          </a>
+
+        }
+
+
+
+        @for (group of menuGroups(); track group.id) {
+
+          <div
+
+            class="nav-group"
+
+            [class.nav-group--expanded]="isExpanded(group.id)"
+
+            [class.nav-group--active]="isGroupActive(group)"
+
+          >
+
+            <button
+
+              type="button"
+
+              class="nav-group__header"
+
+              (click)="toggleGroup(group.id)"
+
+              [attr.aria-expanded]="isExpanded(group.id)"
+
+            >
+
+              <div class="nav-group__pill">
+
+                <mat-icon fontSet="material-icons-round" class="nav-group__pill-icon">
+
+                  {{ group.icon }}
+
+                </mat-icon>
+
+                @if (isExpanded(group.id)) {
+
+                  @for (sub of group.items; track sub.path) {
+
+                    <span
+
+                      class="nav-group__dot"
+
+                      [class.nav-group__dot--active]="isPathActive(sub.path, sub.exact)"
+
+                    ></span>
+
+                  }
+
+                }
+
+              </div>
+
+              <span class="nav-group__title">{{ group.title }}</span>
+
+              <mat-icon fontSet="material-icons-round" class="nav-group__chevron">
+
+                {{ isExpanded(group.id) ? 'expand_less' : 'expand_more' }}
+
+              </mat-icon>
+
+            </button>
+
+
+
+            @if (isExpanded(group.id)) {
+
+              <div class="nav-group__items">
+
+                @for (sub of group.items; track sub.path; let i = $index) {
+
+                  <a
+
+                    class="nav-group__link"
+
+                    [routerLink]="sub.path"
+
+                    routerLinkActive="nav-group__link--active"
+
+                    [routerLinkActiveOptions]="{ exact: sub.exact ?? false }"
+
+                  >
+
+                    <span class="nav-group__index">{{ i + 1 }}</span>
+
+                    <span class="nav-group__link-label">{{ sub.label }}</span>
+
+                  </a>
+
+                }
+
+              </div>
+
+            }
+
+          </div>
+
+        }
+
+
+
+        <div class="sidebar__spacer"></div>
+
+        @for (item of systemItems(); track item.path) {
+          <a
+            class="nav-single"
+            [routerLink]="item.path"
+            routerLinkActive="nav-single--active"
+            [routerLinkActiveOptions]="{ exact: item.exact ?? false }"
+          >
+            <div class="nav-single__pill">
+              <mat-icon fontSet="material-icons-round">{{ item.icon }}</mat-icon>
+            </div>
+            <span class="nav-single__label">{{ item.label }}</span>
+          </a>
+        }
+
+        @for (item of bottomItems(); track item.path) {
+
+          <a
+
+            class="nav-single"
+
+            [routerLink]="item.path"
+
+            routerLinkActive="nav-single--active"
+
+            [routerLinkActiveOptions]="{ exact: item.exact ?? false }"
+
+          >
+
+            <div class="nav-single__pill">
+
+              <mat-icon fontSet="material-icons-round">{{ item.icon }}</mat-icon>
+
+            </div>
+
+            <span class="nav-single__label">{{ item.label }}</span>
+
+          </a>
+
+        }
+
+      </nav>
+
+
+
+      @if (showPromo()) {
+        <a class="sidebar__promo" routerLink="/estructuras">
+
+        <mat-icon fontSet="material-icons-round">account_tree</mat-icon>
+
+        <div>
+
+          <strong>Configuración de estructura</strong>
+
+          <span>Edificios, torres, pisos y unidades</span>
+
+        </div>
+
+      </a>
+      }
+
+    </div>
+
+  </mat-sidenav>
+
+
+
+  <mat-sidenav-content class="app-content">
+
+    <mat-toolbar class="app-toolbar">
+
+      @if (auth.hasMultipleTenants()) {
+        <div class="app-toolbar__tenant">
+          <mat-icon fontSet="material-icons-round" class="app-toolbar__tenant-icon">business</mat-icon>
+          <mat-form-field appearance="outline" class="app-toolbar__tenant-select" subscriptSizing="dynamic">
+            <mat-select
+              [value]="currentTenantId()"
+              (selectionChange)="onTenantChange($event.value)"
+              [disabled]="switchingTenant()"
+              aria-label="Empresa activa"
+            >
+              @for (t of auth.availableTenants(); track t.tenantId) {
+                <mat-option [value]="t.tenantId">
+                  {{ t.tenantName }}
+                  <span class="app-toolbar__tenant-type">· {{ organizationLabel(t.organizationType) }}</span>
+                </mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </div>
+      } @else {
+        @if (auth.currentTenant(); as tenant) {
+          <span class="app-toolbar__tenant-name">{{ tenant.name }}</span>
+        }
+      }
+
+      <span class="flex-1"></span>
+
+      <div class="flex items-center gap-1">
+
+        <button
+
+          mat-icon-button
+
+          (click)="theme.toggle()"
+
+          [matTooltip]="theme.isDark() ? 'Modo claro' : 'Modo oscuro'"
+
+          aria-label="Cambiar tema"
+
+        >
+
+          <mat-icon fontSet="material-icons-round">
+
+            {{ theme.isDark() ? 'light_mode' : 'dark_mode' }}
+
+          </mat-icon>
+
+        </button>
+
+        <button mat-stroked-button (click)="auth.logout()" class="ml-2 app-toolbar__logout">
+
+          <mat-icon fontSet="material-icons-round">logout</mat-icon>
+
+          Salir
+
+        </button>
+
+      </div>
+
+    </mat-toolbar>
+
+    <main class="app-main">
+
+      <router-outlet />
+
+    </main>
+
+  </mat-sidenav-content>
+
+</mat-sidenav-container>
+

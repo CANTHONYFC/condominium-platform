@@ -1,0 +1,59 @@
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.page-subtitle {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: #64748b;
+}
+
+.loading-center {
+  display: flex;
+  justify-content: center;
+  padding: 64px;
+}
+
+.empty-state {
+  padding: 48px;
+  text-align: center;
+  color: #64748b;
+}
+
+.badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.badge--green {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.badge--gray {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.badge--red {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.badge--orange {
+  background: #ffedd5;
+  color: #ea580c;
+}
+
+.badge--blue {
+  background: #dbeafe;
+  color: #2563eb;
+}

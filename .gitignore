@@ -1,0 +1,22 @@
+node_modules/
+dist/
+generated/
+.env
+uploads/
+coverage/
+*.log
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Thumbs.db
+
+# Prisma
+backend/generated/
+
+# Angular
+frontend/dist/
+frontend/.angular/

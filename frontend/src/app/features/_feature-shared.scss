@@ -1,0 +1,52 @@
+.tab-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 16px 0;
+  align-items: center;
+}
+
+.condo-select {
+  min-width: 280px;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 16px;
+  margin-bottom: 8px;
+
+  .label {
+    display: block;
+    font-size: 12px;
+    color: #64748b;
+    margin-bottom: 4px;
+  }
+}
+
+.calendar-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+
+  &--blue { background: #dbeafe; color: #1d4ed8; }
+  &--red { background: #fee2e2; color: #b91c1c; }
+  &--orange { background: #ffedd5; color: #c2410c; }
+  &--green { background: #dcfce7; color: #15803d; }
+  &--purple { background: #f3e8ff; color: #7e22ce; }
+  &--gray { background: #f1f5f9; color: #475569; }
+}
+
+.empty-inline {
+  padding: 24px;
+  text-align: center;
+  color: #64748b;
+}

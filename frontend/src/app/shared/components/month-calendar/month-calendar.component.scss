@@ -1,0 +1,336 @@
+.month-cal {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.dark .month-cal {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.month-cal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 8px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.dark .month-cal__header {
+  background: #0f172a;
+  border-bottom-color: #334155;
+}
+
+.month-cal__title {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.month-cal__today {
+  font-size: 12px;
+  line-height: 1;
+  min-height: 28px;
+}
+
+.month-cal__weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  background: #f1f5f9;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.dark .month-cal__weekdays {
+  background: #0f172a;
+  border-bottom-color: #334155;
+}
+
+.month-cal__weekday {
+  padding: 8px 4px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.month-cal__grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  min-height: 420px;
+}
+
+.month-cal__cell {
+  min-height: 96px;
+  border-right: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 4px;
+  cursor: pointer;
+  transition: background 0.15s;
+
+  &:hover {
+    background: #f8fafc;
+  }
+
+  &--empty {
+    background: #fafafa;
+    cursor: default;
+  }
+
+  &--today .month-cal__day-num {
+    background: #2563eb;
+    color: #fff;
+  }
+}
+
+.dark .month-cal__cell {
+  border-color: #334155;
+
+  &:hover { background: #0f172a; }
+  &--empty { background: #0b1220; }
+}
+
+.month-cal__day-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.month-cal__events {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.month-cal__event {
+  display: block;
+  width: 100%;
+  border: none;
+  border-radius: 6px;
+  padding: 3px 6px;
+  font-size: 10px;
+  line-height: 1.2;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  color: #0f172a;
+  transition: transform 0.15s, box-shadow 0.15s;
+
+  &--blue { background: #dbeafe; }
+  &--green { background: #dcfce7; }
+  &--orange { background: #ffedd5; }
+  &--red { background: #fee2e2; }
+  &--purple { background: #f3e8ff; }
+  &--gray { background: #e2e8f0; color: #334155; border: 1px solid #cbd5e1; }
+
+  &:hover,
+  &--active {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+    z-index: 2;
+    position: relative;
+  }
+}
+
+.month-cal__more {
+  font-size: 10px;
+  color: #64748b;
+  padding-left: 4px;
+}
+
+.event-popover {
+  position: fixed;
+  z-index: 1200;
+  width: 300px;
+  border-radius: 14px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  box-shadow:
+    0 20px 40px rgba(15, 23, 42, 0.18),
+    0 4px 12px rgba(15, 23, 42, 0.08);
+  overflow: hidden;
+  animation: popover-in 0.16s ease-out;
+  pointer-events: auto;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: #3b82f6;
+  }
+
+  &--blue::before { background: #3b82f6; }
+  &--green::before { background: #22c55e; }
+  &--orange::before { background: #f97316; }
+  &--red::before { background: #ef4444; }
+  &--purple::before { background: #a855f7; }
+  &--gray::before { background: #94a3b8; }
+}
+
+.dark .event-popover {
+  background: #1e293b;
+  border-color: #334155;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
+}
+
+@keyframes popover-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.event-popover__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 14px 12px 18px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.dark .event-popover__header {
+  border-bottom-color: #334155;
+}
+
+.event-popover__title {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: #0f172a;
+}
+
+.dark .event-popover__title {
+  color: #f8fafc;
+}
+
+.event-popover__subtitle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  font-size: 12px;
+  color: #64748b;
+
+  mat-icon {
+    font-size: 15px;
+    width: 15px;
+    height: 15px;
+  }
+}
+
+.event-popover__status {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 4px 8px;
+  border-radius: 999px;
+
+  &--green { background: #dcfce7; color: #15803d; }
+  &--orange { background: #ffedd5; color: #c2410c; }
+  &--red { background: #fee2e2; color: #b91c1c; }
+  &--blue { background: #dbeafe; color: #1d4ed8; }
+  &--gray { background: #f1f5f9; color: #475569; }
+}
+
+.event-popover__body {
+  padding: 12px 14px 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  &--note {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 8px;
+    color: #64748b;
+    font-size: 13px;
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      margin-top: 1px;
+    }
+
+    p { margin: 0; }
+  }
+}
+
+.event-popover__section-title {
+  margin: 0 0 2px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #94a3b8;
+}
+
+.event-popover__row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  text-decoration: none;
+  color: inherit;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    color: #64748b;
+    margin-top: 2px;
+    flex-shrink: 0;
+  }
+
+  strong {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #0f172a;
+    word-break: break-word;
+  }
+
+  &--link:hover strong {
+    color: #2563eb;
+  }
+}
+
+.dark .event-popover__row strong {
+  color: #f1f5f9;
+}
+
+.event-popover__row-label {
+  display: block;
+  font-size: 10px;
+  color: #94a3b8;
+  margin-bottom: 1px;
+}
+
+.event-popover__role {
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #64748b;
+}
