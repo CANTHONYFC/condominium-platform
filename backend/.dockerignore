@@ -1,0 +1,14 @@
+node_modules
+dist
+generated
+uploads
+coverage
+.env
+.env.local
+*.log
+.git
+.gitignore
+Dockerfile
+.dockerignore
+test
+**/*.spec.ts
