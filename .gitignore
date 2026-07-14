@@ -2,6 +2,8 @@ node_modules/
 dist/
 generated/
 .env
+.env.prod
+.env.local
 uploads/
 coverage/
 *.log

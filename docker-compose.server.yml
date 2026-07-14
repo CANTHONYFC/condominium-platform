@@ -1,0 +1,43 @@
+# Producción EC2 — credenciales desde backend/.env.prod
+# Uso:
+#   docker-compose --env-file backend/.env.prod -f docker-compose.server.yml up -d
+# Local (Windows): usa docker-compose.yml (puerto 5433 + backend/.env)
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: condominium-postgres
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env.prod
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-condominium}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-condominium_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-condominium_platform}
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: condominium-redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  redis_data:

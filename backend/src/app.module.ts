@@ -51,7 +51,14 @@ import { EventsGateway } from './infrastructure/websocket/events.gateway'
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true, load: [configuration] }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      // Producción: backend/.env.prod | Desarrollo: backend/.env
+      envFilePath:
+        process.env.ENV_FILE ??
+        (process.env.NODE_ENV === 'production' ? '.env.prod' : '.env'),
+      load: [configuration],
+    }),
     ScheduleModule.forRoot(),
     CacheModule.register({ isGlobal: true }),
     BullModule.forRoot({
