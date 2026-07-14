@@ -22,9 +22,9 @@ condominium-platform/
 ## Inicio rápido
 
 ```bash
-# 1. Infraestructura
+# 1. Infraestructura local (Postgres + Redis)
 cd C:\proyectos\condominium-platform
-docker compose up -d
+docker compose --profile dev up -d
 
 # 2. Backend
 cd backend
@@ -40,6 +40,18 @@ cd frontend
 npm install
 npm start
 ```
+
+## Producción (Docker completo)
+
+```bash
+# En el servidor, con backend/.env.prod configurado:
+docker compose --profile prod up -d --build
+
+# App:  http://<IP>/
+# API:  http://<IP>/api/v1
+```
+
+> `DATABASE_URL` en `.env.prod` debe usar host `postgres` (red Docker), no `localhost`.
 
 ## URLs
 

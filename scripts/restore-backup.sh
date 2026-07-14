@@ -6,7 +6,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENV_FILE="${ENV_FILE:-$ROOT_DIR/backend/.env.prod}"
 DUMP_FILE="${1:-$ROOT_DIR/docs/dump-condominium_platform-202607132330.sql}"
-COMPOSE_FILE="${COMPOSE_FILE:-$ROOT_DIR/docker-compose.server.yml}"
+cd "$ROOT_DIR"
 
 if [[ ! -f "$ENV_FILE" ]]; then
   echo "No se encontró $ENV_FILE"
@@ -20,7 +20,7 @@ if [[ ! -f "$DUMP_FILE" ]]; then
   exit 1
 fi
 
-# Carga variables de .env.prod (ignora comentarios y líneas vacías)
+# Carga variables de .env.prod
 set -a
 # shellcheck disable=SC1090
 source <(grep -E '^[A-Z_][A-Z0-9_]*=' "$ENV_FILE" | sed 's/\r$//')
@@ -31,15 +31,18 @@ DB_USER="${POSTGRES_USER:-condominium}"
 DB_NAME="${POSTGRES_DB:-condominium_platform}"
 DB_PASSWORD="${POSTGRES_PASSWORD:-condominium_secret}"
 
-if command -v docker-compose >/dev/null 2>&1; then
-  COMPOSE=(docker-compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE")
+if docker compose version >/dev/null 2>&1; then
+  COMPOSE=(docker compose --profile prod)
+elif command -v docker-compose >/dev/null 2>&1; then
+  COMPOSE=(docker-compose --profile prod)
 else
-  COMPOSE=(docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE")
+  echo "No se encontró docker compose"
+  exit 1
 fi
 
 echo "==> Usando env: $ENV_FILE"
-echo "==> Levantando Postgres/Redis..."
-"${COMPOSE[@]}" up -d
+echo "==> Levantando Postgres/Redis (profile prod)..."
+"${COMPOSE[@]}" up -d postgres redis
 
 echo "==> Esperando healthy de Postgres..."
 for _ in $(seq 1 30); do

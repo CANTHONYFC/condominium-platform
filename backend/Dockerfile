@@ -29,9 +29,13 @@ COPY --from=build /app/dist ./dist
 COPY --from=build /app/generated ./generated
 COPY --from=build /app/prisma ./prisma
 COPY --from=build /app/prisma.config.ts ./prisma.config.ts
-RUN mkdir -p uploads && chown -R nestjs:nestjs /app
+COPY docker-entrypoint.sh ./docker-entrypoint.sh
+RUN sed -i 's/\r$//' docker-entrypoint.sh \
+  && chmod +x docker-entrypoint.sh \
+  && mkdir -p uploads \
+  && chown -R nestjs:nestjs /app
 USER nestjs
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
   CMD curl -fsS http://127.0.0.1:3000/api/v1/health || exit 1
-CMD ["node", "dist/main"]
+ENTRYPOINT ["./docker-entrypoint.sh"]
